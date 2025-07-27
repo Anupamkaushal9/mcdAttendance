@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.0+1
+version: 1.2.4+8
 
 environment:
   sdk: '>=3.1.2 <4.0.0'
@@ -44,7 +44,7 @@ dependencies:
   connectivity_plus: ^5.0.2
   flutter_map: ^7.0.0
   latlong2: ^0.9.1
-  geolocator: ^12.0.0
+  geolocator: ^14.0.2
   permission_handler: ^11.3.1
   geocoding: ^3.0.0
   camera: ^0.11.0+1
@@ -59,6 +59,7 @@ dependencies:
   flutter_face_api: ^7.1.267
   flutter_face_core_basic: ^7.1.147
   device_info_plus: ^11.1.1
+  flutter_udid: ^4.0.0
   package_info_plus: ^8.1.2
   sqflite: ^2.4.1
   palette_generator: ^0.3.3
@@ -71,11 +72,14 @@ dependencies:
   flutter_secure_storage: ^9.2.4
   flutter_exit_app: ^1.1.4
   detect_fake_location: ^2.2.0+1
+  location: ^7.0.1
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
 
+dependency_overrides:          #this was added ca
+  geolocator_android: 4.6.1
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
   # activated in the `analysis_options.yaml` file located at the root of your

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:lottie/lottie.dart';
+import 'package:mcd_attendance/Helpers/Constant.dart';
 import 'package:mcd_attendance/Helpers/String.dart';
 import 'package:mcd_attendance/Model/MeetingModel.dart';
 import 'package:http/http.dart' as http;
@@ -110,7 +111,7 @@ class _AvailableTaskScreenState extends State<AvailableTaskScreen> {
       });
     }
 
-    const String url = 'https://api.mcd.gov.in/app/request';
+    const String url = newBaseUrl;
     const String token =
         'eyJhbGciOiJIUzI1NiJ9.e30.g2PzdcLXSunm0_ZW-5d9ptZSpeXZi0qsh_sTuTTojRs';
 
@@ -168,7 +169,7 @@ class _AvailableTaskScreenState extends State<AvailableTaskScreen> {
 
   Future<void> deleteTask(
       BuildContext context, String empBmid, String taskId) async {
-    const String url = 'https://api.mcd.gov.in/app/request';
+    const String url = newBaseUrl;
 
     // Prepare the data to be sent in the body
     var body = json.encode({

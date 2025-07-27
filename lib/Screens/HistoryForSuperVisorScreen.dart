@@ -18,14 +18,12 @@ import 'Widgets/EmpHistoryWidget.dart';
 import 'Widgets/GlassAppbar.dart';
 
 class SupervisorAttendanceHistoryScreen extends StatefulWidget {
-  final List<EmpHistoryData>? empHistoryData;
   final String guid;
   final String currentMonth;
   final int currentYear;
   final int month;
   const SupervisorAttendanceHistoryScreen(
       {super.key,
-        this.empHistoryData,
         required this.currentMonth,
         required this.currentYear,
         required this.month, required this.guid});
@@ -81,7 +79,6 @@ class _SupervisorAttendanceHistoryScreenState extends State<SupervisorAttendance
       month = widget.month;
       checkMonth = widget.month;
       year = widget.currentYear;
-      empHistoryData = widget.empHistoryData ?? [];
       currMonth = DateFormat('MMM').format(DateTime(year, month));
     });
     _anController = AnimationController(

@@ -7,6 +7,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_exit_app/flutter_exit_app.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
+import 'package:mcd_attendance/Helpers/Constant.dart';
 
 import '../Helpers/String.dart';
 import 'Widgets/DialogBox.dart';
@@ -107,83 +109,113 @@ class _NewAddTaskFormScreenState extends State<NewAddTaskFormScreen> {
       initialDate: DateTime.now(),
       firstDate: DateTime.now(),
       lastDate: DateTime(2101),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xff111184),
+              onPrimary: Colors.white,
+              onSurface: Colors.black,
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor: const Color(0xff111184),
+              ),
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
 
-    if (picked != null && picked != DateTime.now()) {
+    if (picked != null) {
       setState(() {
-        taskDateController.text = '${picked.toLocal()}'.split(' ')[0];
+        taskDateController.text = DateFormat('yyyy-MM-dd').format(picked);
       });
+      // No longer automatically opens time picker
     }
   }
 
   Future<void> _selectTime(BuildContext context) async {
-    // Get the current time
-    final currentTime = TimeOfDay.now();
+    if (taskDateController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please select a date first')));
+      return;
+    }
 
-    // Get the current DateTime for comparison (today's date)
+    final selectedDate = DateFormat('yyyy-MM-dd').parse(taskDateController.text);
+    final currentTime = TimeOfDay.now();
     final now = DateTime.now();
 
-    // Set the next available time (1 hour from the current time)
-    final nextAvailableTime = TimeOfDay(
-      hour: currentTime.hour + 1,
-      minute: currentTime.minute,
-    );
-
-    // Show the time picker with the next available time as the initial time
     final TimeOfDay? picked = await showTimePicker(
       context: context,
-      initialTime: nextAvailableTime, // Default to one hour ahead
+      initialTime: TimeOfDay(
+        hour: currentTime.hour + 1,
+        minute: currentTime.minute,
+      ),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xff111184),
+              onPrimary: Colors.white,
+              onSurface: Colors.black,
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
 
     if (picked != null) {
-      int hour = picked.hour;
-      int minute = picked.minute;
+      final selectedDateTime = DateTime(
+        selectedDate.year,
+        selectedDate.month,
+        selectedDate.day,
+        picked.hour,
+        picked.minute,
+      );
 
-      // Create DateTime for the selected time
-      final selectedTime = DateTime(now.year, now.month, now.day, hour, minute);
-
-      // If the selected time is in the past for today, show a warning
-      if (selectedTime.isBefore(now)) {
-        // Show a dialog or a Snackbar to inform the user
-        showDialog(
-          context: context,
-          builder: (_) => AlertDialog(
-            title: const Center(child: Text('Invalid Time')),
-            content: const Text(
-                'You cannot select a time in the past for today. Please select a future time.'),
-            actions: [
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xff111184),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+      // Only validate time if the selected date is today
+      if (selectedDate.year == now.year &&
+          selectedDate.month == now.month &&
+          selectedDate.day == now.day) {
+        if (selectedDateTime.isBefore(now)) {
+          showDialog(
+            context: context,
+            builder: (_) => AlertDialog(
+              title: const Center(child: Text('Invalid Time')),
+              content: const Text(
+                  'For today, you cannot select a time in the past. Please select a future time.'),
+              actions: [
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xff111184),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    onPressed: () => Navigator.pop(context),
+                    child: Text(
+                      "Ok",
+                      style: TextStyle(fontSize: 16.sp, color: Colors.white),
                     ),
                   ),
-                  onPressed: () {
-                    Navigator.pop(context);
-                  },
-                  child:  Text(
-                    "Ok",
-                    style: TextStyle(fontSize: 16.sp, color: Colors.white),
-                  ),
                 ),
-              )
-            ],
-          ),
-        );
-        return; // Exit the function to prevent updating the time
+              ],
+            ),
+          );
+          return;
+        }
       }
 
-      // Format the hour and minute in "HH:mm" format (24-hour format)
-      String formattedTime = "${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}";
-
-      // Update the controller with the formatted time
-      taskTimeController.text = formattedTime;
-
-      // Print the formatted time for debugging
-      print("Formatted Time: $formattedTime");
+      String formattedTime = "${picked.hour.toString().padLeft(2, '0')}:"
+          "${picked.minute.toString().padLeft(2, '0')}";
+      setState(() {
+        taskTimeController.text = formattedTime;
+      });
     }
   }
 
@@ -223,7 +255,7 @@ class _NewAddTaskFormScreenState extends State<NewAddTaskFormScreen> {
       }
     }
 
-    const url = 'https://api.mcd.gov.in/app/request';
+    const url = newBaseUrl;
     const token = 'eyJhbGciOiJIUzI1NiJ9.e30.g2PzdcLXSunm0_ZW-5d9ptZSpeXZi0qsh_sTuTTojRs';
 
     final requestBody = {
@@ -438,7 +470,7 @@ class _NewAddTaskFormScreenState extends State<NewAddTaskFormScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: const GlassAppBar(title: 'MCD SMART', isLayoutScreen: false),
+      appBar: const GlassAppBar(title: 'MCD PRO', isLayoutScreen: false),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(16.0.sp),
         child: Column(

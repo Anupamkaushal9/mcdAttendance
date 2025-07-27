@@ -11,7 +11,7 @@ class NotificationService {
 
   // Method that listens for the tap on the notification
   static Future<void> onDidReceiveNotification(NotificationResponse notificationResponse) async {
-    print("Notification tapped");
+    debugPrint("Notification tapped");
 
     String? payload = notificationResponse.payload;  // Get the payload (e.g., meeting ID)
 
@@ -106,14 +106,14 @@ class NotificationService {
 
       for (int notificationId in notificationIds) {
         await flutterLocalNotificationsPlugin.cancel(notificationId);
-        print("Cancelled notification with ID: $notificationId for payload: $payload");
+        debugPrint("Cancelled notification with ID: $notificationId for payload: $payload");
       }
 
       // Remove the entry from the map after cancellation
       payloadNotificationMap.remove(payload);
     }
     else {
-      print("No notifications found for payload: $payload");
+      debugPrint("No notifications found for payload: $payload");
     }
   }
 }

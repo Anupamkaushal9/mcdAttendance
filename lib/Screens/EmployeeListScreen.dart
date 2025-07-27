@@ -72,7 +72,7 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
 
   Future<void> getEmpHistory(String empGuid) async {
     try {
-      print("Fetching history for empGuid: $empGuid");
+      debugPrint("Fetching history for empGuid: $empGuid");
 
       if (!mounted) return;
 
@@ -202,7 +202,7 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       extendBodyBehindAppBar: true,
-      appBar: const GlassAppBar(title: 'MCD SMART', isLayoutScreen: false),
+      appBar:  GlassAppBar(title: (widget.comingFrom =='superHistory')?'SUPERVISOR HISTORY':'SUPERVISOR ATTENDANCE', isLayoutScreen: false),
       body: isLoading
           ? Center(
         child: LottieBuilder.asset(

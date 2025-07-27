@@ -1,9 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'dart:math';
 import 'dart:typed_data';
-import 'package:camera/camera.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -17,26 +15,22 @@ import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
 import 'package:lottie/lottie.dart';
-import 'package:mcd_attendance/Helpers/Responsive.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../Helpers/ApiBaseHelper.dart';
 import '../Helpers/AppBtn.dart';
 import '../Helpers/Session.dart';
 import '../Helpers/String.dart';
-import '../Model/Employee.dart';
-import '../Model/EmployeeHistoryModel.dart';
 import '../Utils/fake_location_util.dart';
-import 'dart:math' as math;
-
 import 'Widgets/DialogBox.dart';
 import 'Widgets/GlassAppbar.dart';
+import 'package:image/image.dart' as img;
 
 class InAttendanceForSupervisorScreen extends StatefulWidget {
-  final List<EmpHistoryData>? empHistoryData;
+  //final List<EmpHistoryData>? empHistoryData;
   final String guid;
   const InAttendanceForSupervisorScreen(
-      {super.key, this.empHistoryData, required this.guid});
+      {super.key, /*this.empHistoryData*/ required this.guid});
 
   @override
   State<InAttendanceForSupervisorScreen> createState() =>
@@ -93,14 +87,20 @@ class _InAttendanceForSupervisorScreenState
   final GlobalKey<ScaffoldMessengerState> _scaffoldMessengerKey =
       GlobalKey<ScaffoldMessengerState>();
   bool hasFaceData = false;
+  bool isGpsEnabled = false;
 
   livelinessCheck() async {
     await checkLiveliness();
   }
 
+  checkGps()async {
+    isGpsEnabled = await Geolocator.isLocationServiceEnabled();
+  }
+
   @override
   void initState() {
     super.initState();
+    checkGps();
     _scannerAnimationController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 2),
@@ -213,7 +213,10 @@ class _InAttendanceForSupervisorScreenState
 
       // 4. Run safety checks
       await _executeWithMountedCheck(() {
-        checkForMockLocation(context);
+        // Skip mock location check for iOS
+        if (!Platform.isIOS) {
+          checkForMockLocation(context);
+        }
       }, 'checkForMockLocation');
     } catch (e) {
       debugPrint('Error in _checkInternetAndInitialize: $e');
@@ -235,7 +238,10 @@ class _InAttendanceForSupervisorScreenState
         // Use a delayed callback to ensure context is valid
         Future.delayed(Duration.zero, () {
           if (mounted) {
-            checkForMockLocation(context); // Now it's safe to use context
+            // Skip mock location check for iOS
+            if (!Platform.isIOS) {
+              checkForMockLocation(context);
+            } // Now it's safe to use context
           }
         });
       }
@@ -348,6 +354,7 @@ class _InAttendanceForSupervisorScreenState
   Future<void> saveInAttendance() async {
     setState(() {
       _isLoading = true;
+      _isAuthenticating = true;
     });
 
     inTimingForSuper = DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now());
@@ -361,159 +368,113 @@ class _InAttendanceForSupervisorScreenState
       "deviceId": deviceUniqueId,
       "inTime": inTimingForSuper,
       "empGuid": widget.guid,
-      "inEmpPic": ''//base64Image,
+      "inEmpPic": base64Image,
     };
 
-    try {
-      var response =
-          await apiBaseHelper.postAPICall(saveInAttendanceApi, userData);
-      if (!mounted) return;
+    // Show loading dialog immediately
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => WillPopScope(
+        onWillPop: () async => false,
+        child: const Center(
+          child: CircularProgressIndicator(),
+        ),
+      ),
+    );
 
-      if (response is String) {
-        response = json.decode(response);
-      }
+    try {
+      var response = await apiBaseHelper.postAPICall(saveInAttendanceApi, userData);
+
+      // Dismiss loading dialog
+      Navigator.of(context, rootNavigator: true).pop();
 
       String status = response['status'].toString();
       String message = response['message'] ?? 'No message provided';
       String errorMessage = response['error'] ?? 'No message provided';
-      print("message from api = $message");
+
       if (status == 'TRUE') {
-        BuildContext dialogContext;
-
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!mounted) return;
-          showDialog(
-            barrierDismissible: false,
-            context: context,
-            builder: (BuildContext newContext) {
-              dialogContext = newContext;
-              return WillPopScope(
-                onWillPop: () async => false,
-                child: SuccessDialogForSuper(
-                  messageApi: message,
-                  guid: widget.guid,
-                ),
-              );
-            },
-          );
-        });
-
-        setState(() {
-          _isLoading = false;
-        });
-
-        if (mounted) {
-          Future.delayed(const Duration(milliseconds: 200), () {
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(message)),
-              );
-            }
-          });
-        }
-      } else {
-        // Failure dialog
-        BuildContext dialogContext;
-
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!mounted) return;
-          showDialog(
-            barrierDismissible: false,
-            context: context,
-            builder: (BuildContext newContext) {
-              dialogContext = newContext;
-              return WillPopScope(
-                onWillPop: () async => false,
-                child: FailureDialogNormal(
-                  messageApi: "$errorMessage $status",
-                  onTryAgain: () {
-                    getLastAttendance();
-                    Navigator.pop(dialogContext);
-                  },
-                  onCancel: () {
-                    getLastAttendance();
-                    Navigator.pop(dialogContext);
-                  },
-                ),
-              );
-            },
-          );
-        });
-
-        setState(() {
-          _isLoading = false;
-        });
-
-        String error = response['error'] ?? 'Unknown error occurred';
-        if (mounted) {
-          Future.delayed(const Duration(milliseconds: 200), () {
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text("Failed to save attendance: $error")),
-              );
-            }
-          });
-        }
-      }
-    } catch (e) {
-      // Catch block
-      BuildContext dialogContext;
-
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
+        // Show success dialog immediately
         showDialog(
           barrierDismissible: false,
           context: context,
-          builder: (BuildContext newContext) {
-            dialogContext = newContext;
-            return WillPopScope(
-              onWillPop: () async => false,
-              child: FailureDialogNormal(
-                messageApi: e.toString(),
-                onTryAgain: () {
-                  getLastAttendance();
-                  checkLiveliness();
-                },
-                onCancel: () {
-                  getLastAttendance();
-                  Navigator.pop(dialogContext);
-                },
-              ),
-            );
-          },
+          builder: (_) => WillPopScope(
+            onWillPop: () async => false,
+            child: SuccessDialogForSuper(
+              messageApi: message,
+              guid: widget.guid,
+            ),
+          ),
         );
-      });
+      } else {
+        // Show failure dialog immediately
+        showDialog(
+          barrierDismissible: false,
+          context: context,
+          builder: (_) => WillPopScope(
+            onWillPop: () async => false,
+            child: FailureDialogNormal(
+              messageApi: "$errorMessage $status",
+              onTryAgain: () {
+                Navigator.pop(context);
+                saveInAttendance();
+              },
+              onCancel: () {
+                Navigator.pop(context);
+                getLastAttendance();
+              },
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      // Dismiss loading dialog
+      Navigator.of(context, rootNavigator: true).pop();
 
+      // Show error dialog immediately
+      showDialog(
+        barrierDismissible: false,
+        context: context,
+        builder: (_) => WillPopScope(
+          onWillPop: () async => false,
+          child: FailureDialogNormal(
+            messageApi: e.toString(),
+            onTryAgain: () {
+              Navigator.pop(context);
+              saveInAttendance();
+            },
+            onCancel: () {
+              Navigator.pop(context);
+              getLastAttendance();
+            },
+          ),
+        ),
+      );
+    } finally {
       if (mounted) {
         setState(() {
           _isLoading = false;
-        });
-
-        Future.delayed(const Duration(milliseconds: 200), () {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text("Error occurred: $e")),
-            );
-          }
+          _isAuthenticating = false;
         });
       }
+      await getLastAttendance();
     }
   }
 
   Future<void> saveOutAttendance() async {
     setState(() {
       _isLoading = true;
+      _isAuthenticating = true;
     });
 
-    outTimingForSuper =
-        DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now());
+    outTimingForSuper = DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now());
 
     var userData = {
       "empGuid": widget.guid,
       "deviceId": deviceUniqueId,
       "orgGuid": orgGuid,
       "outEmpPic": base64Image,
-      "inTime": widget.empHistoryData![0].inTime,
+      "inTime": inTimingForSuper,
       "outTime": outTimingForSuper,
       "outLatAdd": currentLat.toString(),
       "outLonAdd": currentLong.toString(),
@@ -521,133 +482,93 @@ class _InAttendanceForSupervisorScreenState
       "attCaptureByGuid": widget.guid,
     };
 
+    // Show loading dialog immediately
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => WillPopScope(
+        onWillPop: () async => false,
+        child: const Center(
+          child: CircularProgressIndicator(),
+        ),
+      ),
+    );
+
     try {
-      final response =
-          await apiBaseHelper.postAPICall(saveOutAttendanceApi, userData);
-      if (!mounted) return;
+      final response = await apiBaseHelper.postAPICall(saveOutAttendanceApi, userData);
+
+      // Dismiss loading dialog
+      Navigator.of(context, rootNavigator: true).pop();
 
       String status = response['status'] ?? 'FALSE';
       String message = response['message'] ?? 'Unknown Error';
       String errorMessage = response['error'] ?? 'No message provided';
 
       if (status == 'TRUE') {
-        BuildContext dialogContext;
-
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!mounted) return;
-          showDialog(
-            barrierDismissible: false,
-            context: context,
-            builder: (BuildContext newContext) {
-              dialogContext = newContext;
-              return WillPopScope(
-                onWillPop: () async => false,
-                child: SuccessDialogForSuper(
-                  messageApi: message,
-                  guid: widget.guid,
-                ),
-              );
-            },
-          );
-        });
-
-        setState(() {
-          _isLoading = false;
-        });
-
-        if (mounted) {
-          Future.delayed(const Duration(milliseconds: 200), () {
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(message)),
-              );
-            }
-          });
-        }
-      } else {
-        BuildContext dialogContext;
-
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!mounted) return;
-          showDialog(
-            barrierDismissible: false,
-            context: context,
-            builder: (BuildContext newContext) {
-              dialogContext = newContext;
-              return WillPopScope(
-                onWillPop: () async => false,
-                child: FailureDialogNormal(
-                  messageApi: "$errorMessage $status",
-                  onTryAgain: () {
-                    getLastAttendance();
-                    checkLiveliness();
-                  },
-                  onCancel: () {
-                    getLastAttendance();
-                    Navigator.pop(dialogContext);
-                  },
-                ),
-              );
-            },
-          );
-        });
-
-        setState(() {
-          _isLoading = false;
-        });
-
-        if (mounted) {
-          Future.delayed(const Duration(milliseconds: 200), () {
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                    content: Text('Failed to save out attendance: $message')),
-              );
-            }
-          });
-        }
-      }
-    } catch (e) {
-      BuildContext dialogContext;
-
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
+        // Show success dialog immediately
         showDialog(
           barrierDismissible: false,
           context: context,
-          builder: (BuildContext newContext) {
-            dialogContext = newContext;
-            return WillPopScope(
-              onWillPop: () async => false,
-              child: FailureDialogNormal(
-                messageApi: e.toString(),
-                onTryAgain: () {
-                  getLastAttendance();
-                  checkLiveliness();
-                },
-                onCancel: () {
-                  getLastAttendance();
-                  Navigator.pop(dialogContext);
-                },
-              ),
-            );
-          },
+          builder: (_) => WillPopScope(
+            onWillPop: () async => false,
+            child: SuccessDialogForSuper(
+              messageApi: message,
+              guid: widget.guid,
+            ),
+          ),
         );
-      });
+      } else {
+        // Show failure dialog immediately
+        showDialog(
+          barrierDismissible: false,
+          context: context,
+          builder: (_) => WillPopScope(
+            onWillPop: () async => false,
+            child: FailureDialogNormal(
+              messageApi: "$errorMessage $status",
+              onTryAgain: () {
+                Navigator.pop(context);
+                saveOutAttendance();
+              },
+              onCancel: () {
+                Navigator.pop(context);
+                getLastAttendance();
+              },
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      // Dismiss loading dialog
+      Navigator.of(context, rootNavigator: true).pop();
 
+      // Show error dialog immediately
+      showDialog(
+        barrierDismissible: false,
+        context: context,
+        builder: (_) => WillPopScope(
+          onWillPop: () async => false,
+          child: FailureDialogNormal(
+            messageApi: e.toString(),
+            onTryAgain: () {
+              Navigator.pop(context);
+              saveOutAttendance();
+            },
+            onCancel: () {
+              Navigator.pop(context);
+              getLastAttendance();
+            },
+          ),
+        ),
+      );
+    } finally {
       if (mounted) {
         setState(() {
           _isLoading = false;
-        });
-
-        Future.delayed(const Duration(milliseconds: 200), () {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('An error occurred: $e')),
-            );
-          }
+          _isAuthenticating = false;
         });
       }
+      await getLastAttendance();
     }
   }
 
@@ -979,6 +900,15 @@ class _InAttendanceForSupervisorScreenState
         });
       }
 
+      // Compress the fetched image and store it in base64Image
+      final compressedFetchedImage = await compressImage(fetchedImageBytes!);
+      base64Image = base64Encode(compressedFetchedImage);  // <-- Store as base64
+      debugPrint('base64Image size: ${base64Image.length / 1024} KB');  // Size in KB
+
+      // Print original and compressed sizes for comparison
+      debugPrint('Original image size: ${fetchedImageBytes!.lengthInBytes / 1024} KB');
+      debugPrint('Compressed binary size: ${compressedFetchedImage.lengthInBytes / 1024} KB');
+
       // Perform face matching for livenessImage vs fetchedImageBytes
       var request1 = MatchFacesRequest([mfImage1!, mfImage3!]);
       var response1 = await faceSdk.matchFaces(request1);
@@ -1004,10 +934,7 @@ class _InAttendanceForSupervisorScreenState
         // Handle attendance saving based on empHistoryData status
         if (mounted) {
           setState(() {
-            _isAuthenticating = false; // Reset authentication flag
-            if (widget.empHistoryData != null &&
-                widget.empHistoryData!.isNotEmpty) {
-              if (inTiming.isNotEmpty) {
+              if (inTimingForSuper.isNotEmpty) {
                 // If empHistoryData is not empty and inTime exists, save out attendance
                 saveOutAttendance();
                 getLastAttendance();
@@ -1016,11 +943,6 @@ class _InAttendanceForSupervisorScreenState
                 saveInAttendance();
                 getLastAttendance();
               }
-            } else {
-              // If empHistoryData is empty (first attendance), save in attendance
-              saveInAttendance();
-              getLastAttendance();
-            }
           });
         }
       } else {
@@ -1033,6 +955,7 @@ class _InAttendanceForSupervisorScreenState
               builder: (_) => WillPopScope(
                 onWillPop: () async => false,
                 child: FailureDialog(
+                  comingFrom: 'inAttendance',
                   onTryAgain: () {
                     // Navigator.pop(context);
                     checkLiveliness();
@@ -1052,6 +975,7 @@ class _InAttendanceForSupervisorScreenState
           showDialog(
             context: context,
             builder: (_) => FailureDialog(
+              comingFrom: 'inAttendance',
               onTryAgain: () {
                 checkLiveliness();
                 Navigator.pop(context);
@@ -1142,9 +1066,38 @@ class _InAttendanceForSupervisorScreenState
   //   }
   // }
 
+  Future<Uint8List> compressImage(Uint8List imageBytes, {
+    int targetWidth = 249,
+    int targetHeight = 375,
+    int quality = 50,
+  }) async {
+    // Decode image
+    img.Image? image = img.decodeImage(imageBytes);
+    if (image == null) return imageBytes;
+
+    // Resize directly to target size
+    image = img.copyResize(
+      image,
+      width: targetWidth,
+      height: targetHeight,
+      interpolation: img.Interpolation.linear,
+    );
+
+    // Compress to JPEG
+    Uint8List compressedBytes = Uint8List.fromList(img.encodeJpg(image, quality: quality));
+
+    // Log for confirmation
+    double sizeKB = compressedBytes.lengthInBytes / 1024;
+    debugPrint('Compressed directly to $targetWidth x $targetHeight @ quality $quality');
+    debugPrint('Final size: ${sizeKB.toStringAsFixed(2)} KB');
+
+    return compressedBytes;
+  }
+
   Future<void> checkLiveliness() async {
+    if (_isLivelinessInProgress) return;
+
     try {
-      // Mark the liveness process as in progress
       _isLivelinessInProgress = true;
 
       var result = await faceSdk.startLiveness(
@@ -1159,11 +1112,9 @@ class _InAttendanceForSupervisorScreenState
         ),
         notificationCompletion: (notification) {
           if (!mounted || !_isLivelinessInProgress) return;
-          if (mounted) {
-            setState(() {
-              livenessStatus = "Liveness Status: ${notification.status}";
-            });
-          }
+          setState(() {
+            livenessStatus = "Liveness Status: ${notification.status}";
+          });
         },
       );
 
@@ -1179,10 +1130,13 @@ class _InAttendanceForSupervisorScreenState
           setState(() {
             imageDuringLivelinessCheck = result.image;
             livenessStatus = "Liveness Passed: ${result.liveness.name}";
+            debugPrint(livenessStatus);
           });
         }
-        //await captureAndAuthenticate(); // Proceed with face authentication
         if (result.liveness.name == 'PASSED') {
+          setState(() {
+            _isAuthenticating = true;
+          });
           setImage(imageDuringLivelinessCheck!, ImageType.LIVE, 1);
           base64Image = base64Encode(imageDuringLivelinessCheck!);
           matchFaces();
@@ -1195,6 +1149,8 @@ class _InAttendanceForSupervisorScreenState
           livenessStatus = "Error during liveness check.";
         });
       }
+    } finally {
+      _isLivelinessInProgress = false;
     }
   }
 
@@ -1324,9 +1280,12 @@ class _InAttendanceForSupervisorScreenState
           Position position = await Geolocator.getCurrentPosition(
               desiredAccuracy: LocationAccuracy.best);
 
-          if (position.isMocked) {
-            showMockLocationDialog(context);
-          }
+          if(!Platform.isIOS)
+            {
+              if (position.isMocked) {
+                showMockLocationDialog(context);
+              }
+            }
 
           if (mounted) {
             setState(() {
@@ -1361,6 +1320,7 @@ class _InAttendanceForSupervisorScreenState
                 _isLoading = false; // Stop loading on error
               });
             }
+            _showSafeDialog(LocationExceptionDialog(errorDetails: e.toString()));
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text('Failed to fetch address: $e')),
             );
@@ -1569,7 +1529,7 @@ class _InAttendanceForSupervisorScreenState
         : (hasFaceData)
             ? Scaffold(
                 backgroundColor: Colors.white,
-                appBar: const GlassAppBar(title: 'MCD SMART', isLayoutScreen: false),
+                appBar: const GlassAppBar(title: 'MCD PRO', isLayoutScreen: false),
                 resizeToAvoidBottomInset: true,
                 extendBodyBehindAppBar: (!_isLoading)?true:false,
                 body: _isNetworkAvail
@@ -1581,14 +1541,10 @@ class _InAttendanceForSupervisorScreenState
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Center(
-                                    child: Transform.rotate(
-                                      angle: -pi /
-                                          2, // 90 degrees in radians (clockwise)
-                                      child: CircleAvatar(
-                                        radius: 100,
-                                        backgroundImage:
-                                            MemoryImage(fetchedImageBytes!),
-                                      ),
+                                    child: CircleAvatar(
+                                      radius: 100,
+                                      backgroundImage:
+                                          MemoryImage(fetchedImageBytes!),
                                     ),
                                   ),
                                   // Center(
@@ -1646,12 +1602,13 @@ class _InAttendanceForSupervisorScreenState
                                   SizedBox(height: 10.h),
                                   Column(
                                     children: [
-                                      Padding(
-                                        padding: const EdgeInsets.all(8.0),
+                                      SizedBox( // Added fixed height container
+                                        //height: 60, // Adjust this value as needed
                                         child: TextField(
                                           controller: remarkController,
-                                          maxLines: 5,
-                                          decoration: const InputDecoration(
+                                          scrollPadding: const EdgeInsets.only(bottom: 120),
+                                          maxLines: null,
+                                          decoration: const InputDecoration( // Removed 'expands: true'
                                             border: OutlineInputBorder(),
                                             hintText: 'Type your message here',
                                           ),
@@ -1677,51 +1634,58 @@ class _InAttendanceForSupervisorScreenState
                                     width: double.infinity,
                                     height: 50.h,
                                     child: ElevatedButton(
-                                        onPressed: (currentLat != 0.0 ||
-                                                currentLat != null)
-                                            ? () {
-                                                setState(() {
-                                                  showLoader = true;
-                                                  initialize();
-                                                  Future.delayed(const Duration(
-                                                          seconds: 3))
-                                                      .then((_) {
-                                                    showLoader = false;
-                                                  });
-                                                });
-                                              }
-                                            : null,
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor:
-                                              const Color(0xff111184),
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(8),
+                                      onPressed: (currentLat != 0.0 && currentLat != null)
+                                          ? () async {
+                                        // Check if GPS is enabled
+                                        bool isGpsEnabled = await Geolocator.isLocationServiceEnabled();
+                                        if (!isGpsEnabled) {
+                                          _showSafeSnackBar('Please turn on GPS to proceed');
+                                          return;
+                                        }
+
+                                        setState(() {
+                                          showLoader = true;
+                                        });
+
+                                        await initialize();
+
+                                        if (mounted) {
+                                          setState(() {
+                                            Future.delayed(const Duration(
+                                                seconds: 3))
+                                                .then((_) {
+                                              showLoader = false;
+                                            });
+                                          });
+                                        }
+                                      }
+                                          : null,
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: const Color(0xff111184),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                      ),
+                                      child: showLoader
+                                          ? Center(
+                                        child: SizedBox(
+                                          height: 20.h,
+                                          width: 20.w,
+                                          child: const CircularProgressIndicator(
+                                            color: Colors.white,
                                           ),
-                                        ), // Button is enabled only when _isButtonEnabled is true
-                                        child: (showLoader)
-                                            ? Center(
-                                                child: SizedBox(
-                                                  height: 20.h,
-                                                  width: 20.w,
-                                                  child:
-                                                      const CircularProgressIndicator(
-                                                    color: Colors.white,
-                                                  ),
-                                                ),
-                                              )
-                                            : (currentLat != 0.0 ||
-                                                    currentLat != null)
-                                                ? const Text(
-                                                    "Proceed",
-                                                    style: TextStyle(
-                                                        color: Colors.white),
-                                                  )
-                                                : const Text(
-                                                    "Check Location Permission to enable this button",
-                                                    style: TextStyle(
-                                                        color: Colors.white),
-                                                  )),
+                                        ),
+                                      )
+                                          : (currentLat != 0.0 && currentLat != null)
+                                          ? const Text(
+                                        "Proceed",
+                                        style: TextStyle(color: Colors.white),
+                                      )
+                                          : const Text(
+                                        "Gps disabled or location permission denied ",
+                                        style: TextStyle(color: Colors.white),
+                                      ),
+                                    ),
                                   ),
                                   //  SizedBox(height: 10.h),
                                   //  (imageDuringLivelinessCheck!=null)?Image.memory(imageDuringLivelinessCheck!,height: 100,width: 100,):SizedBox()

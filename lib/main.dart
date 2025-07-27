@@ -6,9 +6,11 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart'as http;
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:device_info_plus/device_info_plus.dart';
+import 'package:flutter_udid/flutter_udid.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart'; // Import ScreenUtils
+import 'package:mcd_attendance/Helpers/Constant.dart';
 import 'package:mcd_attendance/Screens/LayoutScreen.dart';
 import 'package:mcd_attendance/Screens/NewLayoutScreen.dart';
 import 'package:mcd_attendance/providers/BottomNavProvider.dart';
@@ -54,15 +56,18 @@ class MyApp extends StatelessWidget {
       designSize: const Size(430, 932), // Set your design size
       minTextAdapt: true,
       builder: (context, child) {
-        return MaterialApp(
-          title: 'Attendance Application',
-          debugShowCheckedModeBanner: false,
-          theme: ThemeData(
-            colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-            useMaterial3: true,
+        return MediaQuery(
+          data: MediaQuery.of(context).copyWith(textScaleFactor: 1.0),///used for not to increase size of font by system settings
+          child: MaterialApp(
+            title: 'Attendance Application',
+            debugShowCheckedModeBanner: false,
+            theme: ThemeData(
+              colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+              useMaterial3: true,
+            ),
+            home: const MyHomePage(title: 'Attendance App'),
+            navigatorKey: navigatorKey,
           ),
-          home: const MyHomePage(title: 'Attendance App'),
-          navigatorKey: navigatorKey,
         );
       },
     );
@@ -85,14 +90,22 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
   List<EmployeeXML> empDeviceData = [];
   String? deviceIdentifier = "unknown";
   final FlutterSecureStorage secureStorage = const FlutterSecureStorage();
+  bool isAppUpdated = true;
 
   @override
   void initState() {
     super.initState();
-    getDeviceIdentifierNew().then((_) { //
-      getAppVersion();
-        requestPermissions(context);
-    });
+    initSequence();
+  }
+
+  Future<void> initSequence() async {
+    await getAppVersion(); // Step 1
+
+    bool isAppUpdated = await getAppVersionDataApi(context); // Step 2
+    if (!isAppUpdated) return; // 🔁 Stop further flow if app is outdated
+
+    await getDeviceIdentifierNew(); // Step 3
+    await requestPermissions(context); // Step 4
   }
 
   @override
@@ -193,6 +206,97 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
     );
   }
 
+  Future<bool> getAppVersionDataApi(BuildContext context) async {
+    bool isUpToDate = true;
+
+    if (mounted) {
+      setState(() {
+        _isLoading = true;
+      });
+    }
+
+    const String url = 'https://api.mcd.gov.in/app/request';
+    const String token =
+        'eyJhbGciOiJIUzI1NiJ9.e30.g2PzdcLXSunm0_ZW-5d9ptZSpeXZi0qsh_sTuTTojRs';
+
+    var headers = {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token',
+    };
+
+    var body = json.encode({
+      "module": "version",
+      "event": "current",
+      "params": {
+        "app_type": Platform.isIOS ? "ios" : "android"
+      }
+    });
+
+    var request = http.Request('GET', Uri.parse(url));
+    request.headers.addAll(headers);
+    request.body = body;
+
+    try {
+      http.StreamedResponse response = await request.send();
+
+      if (response.statusCode == 200) {
+        String responseBody = await response.stream.bytesToString();
+        final Map<String, dynamic> responseData = json.decode(responseBody);
+
+        debugPrint('App Version Data Response: $responseData');
+
+        if (responseData['code'] == 2 &&
+            responseData['data'] != null &&
+            responseData['data'] is List &&
+            responseData['data'].isNotEmpty) {
+          final Map<String, dynamic> versionInfo = responseData['data'][0];
+
+          String serverVersion = versionInfo['version_number'] ?? '';
+
+          // Get current app version
+          PackageInfo packageInfo = await PackageInfo.fromPlatform();
+          String currentAppVersion = packageInfo.version;
+
+          debugPrint('Server Version: $serverVersion');
+          debugPrint('Current App Version: $currentAppVersion');
+
+          if (serverVersion != currentAppVersion) {
+            isUpToDate = false;
+
+            Future.delayed(Duration.zero, () {
+              if (context.mounted) {
+                showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (_) => const UpdateDialog(),
+                );
+              }
+            });
+          } else {
+            debugPrint('App is up to date.');
+          }
+        } else {
+          debugPrint('No valid version data found.');
+        }
+      } else {
+        debugPrint("Failed to fetch version data. Status: ${response.statusCode}");
+      }
+    } catch (e) {
+      debugPrint("getAppVersionDataApi Exception: $e");
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+
+    return isUpToDate;
+  }
+
+
+
+
   Future<void> getAppVersion() async {
     try {
       PackageInfo packageInfo = await PackageInfo.fromPlatform();
@@ -209,30 +313,32 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
 
   Future<String?> getDeviceIdentifierNew() async {
     const iosStorageKey = 'ios_device_unique_id';
-    final deviceInfo = DeviceInfoPlugin();
 
     if (Platform.isAndroid) {
-      // ✅ Use ANDROID_ID — stable across reinstalls unless factory reset
-      AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
-      String? androidId = androidInfo.id;
-      print('Android device ID: $androidId');
-      deviceIdentifier = androidId;
-      _setDeviceIdSharedPref();
-      return deviceIdentifier;
-    } else if (Platform.isIOS) {
-      // ✅ Check secure storage for a UUID
-      String? storedUUID = await secureStorage.read(key: iosStorageKey);
-      if (storedUUID != null) {
-        print('iOS stored UUID: $storedUUID');
-        deviceIdentifier = storedUUID;
-        _setDeviceIdSharedPref();
+      try {
+        // ✅ Use ANDROID_ID via flutter_udid (persistent across reinstall)
+        String androidUdid = await FlutterUdid.udid;
+        print('Android device ID: $androidUdid');
+        deviceIdentifier = androidUdid;
+        _setDeviceIdSharedPref(); // your own storage method
         return deviceIdentifier;
+      } catch (e) {
+        print('Error getting Android UDID: $e');
+        return null;
       }
+    }
 
-      // ❌ iOS identifierForVendor changes on uninstall, so we avoid it
-      // ✅ Generate and store new UUID
-      else
-        {
+    else if (Platform.isIOS) {
+      try {
+        // ✅ Check secure storage for a UUID
+        String? storedUUID = await secureStorage.read(key: iosStorageKey);
+        if (storedUUID != null) {
+          print('iOS stored UUID: $storedUUID');
+          deviceIdentifier = storedUUID;
+          _setDeviceIdSharedPref();
+          return deviceIdentifier;
+        } else {
+          // ✅ Generate and store new UUID (persistent in Keychain)
           String newUUID = const Uuid().v4();
           await secureStorage.write(key: iosStorageKey, value: newUUID);
           deviceIdentifier = newUUID;
@@ -240,6 +346,10 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
           print('Generated and stored iOS UUID: $newUUID');
           return deviceIdentifier;
         }
+      } catch (e) {
+        print('Error accessing iOS storage: $e');
+        return null;
+      }
     }
 
     return null;
@@ -342,9 +452,115 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
     });
   }
 
+  // Future<void> getDeviceRegistrationStatus(String deviceId) async {
+  //   if (!mounted) return;
+  //
+  //   setState(() {
+  //     _isLoading = true;
+  //   });
+  //
+  //   // Optional delay to simulate loading
+  //   await Future.delayed(const Duration(seconds: 1));
+  //
+  //   var connectivityResult = await (Connectivity().checkConnectivity());
+  //   if (connectivityResult == ConnectivityResult.none) {
+  //     showDialog(
+  //       context: context,
+  //       builder: (BuildContext context) {
+  //         return NoInternetDialog(
+  //           onRetry: () {
+  //             getDeviceRegistrationStatus(deviceIdentifier!);
+  //           },
+  //         );
+  //       },
+  //     );
+  //     return;
+  //   }
+  //
+  //   const String url = newBaseUrl;
+  //   const String token = 'eyJhbGciOiJIUzI1NiJ9.e30.g2PzdcLXSunm0_ZW-5d9ptZSpeXZi0qsh_sTuTTojRs';
+  //
+  //   var headers = {
+  //     'Content-Type': 'application/json',
+  //     'Authorization': 'Bearer $token',
+  //   };
+  //
+  //   var body = json.encode({
+  //     "module": "attendance",
+  //     "event": "device_status",
+  //     "params": {
+  //       "device_id": deviceId,
+  //     }
+  //   });
+  //
+  //   var request = http.Request('GET', Uri.parse(url));
+  //   request.body = body;
+  //   request.headers.addAll(headers);
+  //
+  //   try {
+  //     http.StreamedResponse response = await request.send();
+  //
+  //     if (response.statusCode == 200) {
+  //       String responseBody = await response.stream.bytesToString();
+  //       final Map<String, dynamic> getData = json.decode(responseBody);
+  //
+  //       print("API Response: $getData");
+  //
+  //       String msg = getData['msg']?.toString() ?? '';
+  //       String code = getData['code']?.toString() ?? '';
+  //
+  //       if (code == '2') {
+  //         var employeeXML = getData['data'];
+  //         if (mounted) {
+  //           setState(() {
+  //             empDeviceData = [EmployeeXML.fromJson(employeeXML)];
+  //             userBmid = empDeviceData[0].emp_bmid.toString();
+  //             empName = empDeviceData[0].emp_name;
+  //             debugPrint("emp_bmid: ${empDeviceData[0].emp_bmid}");
+  //             _getPref();
+  //           });
+  //         }
+  //       } else if (code == '1' && msg == 'No device is registered.') {
+  //         if (mounted) {
+  //           showDialog(
+  //             barrierDismissible: false,
+  //             context: context,
+  //             builder: (_) => WillPopScope(
+  //               onWillPop: () async => false,
+  //               child: const DeviceRegisterDialog(),
+  //             ),
+  //           );
+  //         }
+  //       } else {
+  //         _showNullValueError('getDeviceRegistrationStatus Api: $msg');
+  //       }
+  //     } else {
+  //       _showNullValueError('getDeviceRegistrationStatus Api: HTTP ${response.statusCode}');
+  //     }
+  //   } catch (e) {
+  //     _showNullValueError('getDeviceRegistrationStatus Api Exception: ${e.toString()}');
+  //   } finally {
+  //     if (mounted) {
+  //       setState(() {
+  //         _isLoading = false;
+  //       });
+  //     }
+  //   }
+  // }
+
 
   _getPref() async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
+
+    // First, check if app is updated
+    if (!isAppUpdated) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => const UpdateDialog(),
+      );
+      return; // Exit the function if app is not updated
+    }
 
     // First, check permissions explicitly before proceeding
     PermissionStatus cameraStatus = await Permission.camera.status;
@@ -377,25 +593,12 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
       if (!cameraStatus.isDenied && !cameraStatus.isPermanentlyDenied &&
           !locationStatus.isDenied && !locationStatus.isPermanentlyDenied) {
 
-        // Only navigate if both permissions are granted
-        // Timer(
-        //   const Duration(seconds: 1),
-        //       () => Navigator.pushReplacement(
-        //     context,
-        //     MaterialPageRoute(
-        //       builder: (context) => LayoutScreen(
-        //         bmid: userBmid,
-        //         empData: empTempData,  // Make sure to pass empTempData
-        //       ),
-        //     ),
-        //   ),
-        // );
         Timer(
           const Duration(seconds: 1),
               () => Navigator.pushReplacement(
             context,
             MaterialPageRoute(
-              builder: (context) =>  LayoutScreen(bmid: userBmid, empData: empTempData)
+                builder: (context) => LayoutScreen(bmid: userBmid, empData: empTempData)
             ),
           ),
         );
@@ -421,7 +624,6 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
         // If permissions are denied, show the permission dialog
         requestPermissions(context);
       }
-
     }
   }
 

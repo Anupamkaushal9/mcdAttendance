@@ -20,7 +20,6 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   Color? _dominantColor;
-  bool isLoading = false;
 
   @override
   void initState() {
@@ -32,16 +31,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
     var connectivityResult = await Connectivity().checkConnectivity();
     if (connectivityResult == ConnectivityResult.none) {
       showDialog(
-          context: context,
-          builder: (BuildContext context) => NoInternetDialog(
-            onRetry: () => Platform.isAndroid
-                ? FlutterExitApp.exitApp()
-                : FlutterExitApp.exitApp(iosForceExit: true),
-          ));
-          return;
-      }
-          _extractDominantColor();
+        context: context,
+        builder: (BuildContext context) => NoInternetDialog(
+          onRetry: () => Platform.isAndroid
+              ? FlutterExitApp.exitApp()
+              : FlutterExitApp.exitApp(iosForceExit: true),
+        ),
+      );
+      return;
     }
+    _extractDominantColor();
+  }
 
   Future<void> _extractDominantColor() async {
     if (userPhoto != null && userPhoto!.isNotEmpty) {
@@ -51,7 +51,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           size: const Size(200, 200),
         );
         setState(() {
-          _dominantColor = _darkenColor(generator.dominantColor?.color ?? Colors.blue.shade900, 0.6);
+          _dominantColor = _darkenColor(
+              generator.dominantColor?.color ?? Colors.blue.shade900, 0.6);
         });
       } catch (e) {
         setState(() => _dominantColor = Colors.blue.shade900);
@@ -71,6 +72,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBodyBehindAppBar: true, // Background image behind app bar
       backgroundColor: Colors.white,
       appBar: const GlassAppBar(title: 'MY PROFILE', isLayoutScreen: false),
       body: _dominantColor == null
@@ -86,12 +88,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
           children: [
             ProfileHeader(
               dominantColor: _dominantColor!,
-              avatar: userPhoto?.isNotEmpty ?? false
+              avatar: userPhoto!=null
                   ? MemoryImage(userPhoto!) as ImageProvider<Object>
-                  :  const AssetImage('assets/images/dummyUser.jpg'),
+                  : const AssetImage('assets/images/dummyUser.jpg'),
               title: empTempData.first.empName ?? '',
-              subtitle: empTempData.first.empDesignation ?? 'Unknown Designation',
+              subtitle:
+              empTempData.first.empDesignation ?? 'Unknown Designation',
             ),
+            SizedBox(height: 20.h,),
             UserInfoSection(dominantColor: _dominantColor!),
           ],
         ),
@@ -116,30 +120,49 @@ class ProfileHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        Container(
-          height: 170.h,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [dominantColor, dominantColor.withOpacity(0.3)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
+    return SizedBox(
+      height: 350.h, // Enough to fit image, avatar, and texts
+      child: Stack(
+        clipBehavior: Clip.none,
+        alignment: Alignment.topCenter,
+        children: [
+          // Background image with gradient
+          Container(
+            height: 220.h,
+            padding: EdgeInsets.only(top: 60.h),
+            width: double.infinity,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Colors.white,Colors.white],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+            child: Image.asset(
+              "assets/images/mcd_building.jpg",
+              fit: BoxFit.cover,
+              width: double.infinity,
+              height: double.infinity,
             ),
           ),
-          child: Image.asset("assets/images/mcd_building.jpg",fit: BoxFit.fill,width: double.infinity,height: 200.h,),
-        ),
-        SafeArea(
-          child: Container(
-            width: double.infinity,
-            margin: const EdgeInsets.only(top: 100),
+
+          // Avatar - Positioned to hang over background
+          Positioned(
+            top: 160.h,
+            child: Avatar(image: avatar, dominantColor: dominantColor),
+          ),
+
+          // Title and subtitle - Positioned below avatar
+          Positioned(
+            top: 300.h, // 160 + 70 (avatar radius) + spacing
+            left: 0,
+            right: 0,
             child: Column(
               children: [
-                Avatar(image: avatar, dominantColor: dominantColor),
-                SizedBox(height: 12.h),
                 Text(
                   title,
-                  style:  TextStyle(
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
                     fontSize: 24.sp,
                     fontWeight: FontWeight.bold,
                     color: Colors.black,
@@ -148,7 +171,8 @@ class ProfileHeader extends StatelessWidget {
                 SizedBox(height: 4.h),
                 Text(
                   subtitle,
-                  style:  TextStyle(
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
                     fontSize: 16.sp,
                     color: Colors.black,
                   ),
@@ -156,11 +180,12 @@ class ProfileHeader extends StatelessWidget {
               ],
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
+
 
 class Avatar extends StatelessWidget {
   final ImageProvider<dynamic> image;
@@ -175,15 +200,12 @@ class Avatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return CircleAvatar(
-      radius: 70,
+      radius: 70.r,
       backgroundColor: dominantColor,
-      child: Transform.rotate(
-        angle: -pi / 2,
-        child: CircleAvatar(
-          radius: 66,
-          backgroundImage: image as ImageProvider<Object>,
-        ),
-      ),
+      child:CircleAvatar(
+        radius: 66.r,
+        backgroundImage: image as ImageProvider<Object>,
+      )
     );
   }
 }
@@ -197,48 +219,40 @@ class UserInfoSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.all(16),
-      child: Card(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        elevation: 4,
-        shadowColor: Colors.teal,
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 10,horizontal: 15),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            gradient: LinearGradient(
-              colors: [dominantColor.withOpacity(0.1), Colors.white],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 15),
+        decoration: BoxDecoration(
+          border: Border.all(color: dominantColor),
+          borderRadius: BorderRadius.circular(20),
+          color: Colors.white,
+        ),
+        child: Column(
+          children: [
+            _buildInfoTile(
+              icon: Icons.badge_outlined,
+              title: 'BMID',
+              value: empTempData.first.empCode,
+              color: dominantColor,
             ),
-          ),
-          child: Column(
-            children: [
-              _buildInfoTile(
-                icon: Icons.email,
-                title: 'Email',
-                value: empTempData.first.email,
-                color: dominantColor
-              ),
-              _buildInfoTile(
-                icon: Icons.phone,
-                title: 'Mobile',
-                value: empTempData.first.mobile,
-                color: dominantColor
-              ),
-              _buildInfoTile(
-                icon: Icons.badge,
-                title: 'Employee ID',
-                value: empTempData.first.empCode,
-                color: dominantColor
-              ),
-              _buildInfoTile(
-                icon: Icons.work,
-                title: 'Designation',
-                value: empTempData.first.empDesignation,
-                color: dominantColor
-              ),
-            ],
-          ),
+            _buildInfoTile(
+              icon: Icons.phone,
+              title: 'Mobile',
+              value: empTempData.first.mobile,
+              color: dominantColor,
+            ),
+            _buildInfoTile(
+              icon: Icons.email_outlined,
+              title: 'Email',
+              value: empTempData.first.email,
+              color: dominantColor,
+            ),
+            _buildInfoTile(
+              icon: Icons.work_outline,
+              title: 'Designation',
+              value: empTempData.first.empDesignation,
+              color: dominantColor,
+            ),
+          ],
         ),
       ),
     );
@@ -248,7 +262,7 @@ class UserInfoSection extends StatelessWidget {
     required IconData icon,
     required String title,
     required String? value,
-    required Color? color
+    required Color? color,
   }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
@@ -256,14 +270,15 @@ class UserInfoSection extends StatelessWidget {
         children: [
           Icon(icon, color: color),
           SizedBox(width: 10.w),
-          Text("$title:",
-              style:
-               TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600)),
-           SizedBox(width: 10.w),
+          Text(
+            "$title:",
+            style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600),
+          ),
+          SizedBox(width: 10.w),
           Expanded(
             child: Text(
               value ?? "Not Available",
-              style:  TextStyle(fontSize: 16.sp, color: Colors.black54),
+              style: TextStyle(fontSize: 16.sp, color: Colors.black),
               overflow: TextOverflow.ellipsis,
             ),
           ),
@@ -272,3 +287,4 @@ class UserInfoSection extends StatelessWidget {
     );
   }
 }
+

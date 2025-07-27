@@ -2,6 +2,8 @@ import 'dart:ui';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
+import '../../Helpers/String.dart';
+
 class GlassAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
   final bool isLayoutScreen;
@@ -14,24 +16,29 @@ class GlassAppBar extends StatelessWidget implements PreferredSizeWidget {
   Widget build(BuildContext context) {
     return ClipRRect(
       borderRadius: const BorderRadius.only(
-        bottomLeft: Radius.circular(30),
-        bottomRight: Radius.circular(30),
+        bottomLeft: Radius.circular(20),
+        bottomRight: Radius.circular(20),
       ),
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
         child: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: [
-                const Color(0xff111184).withOpacity(0.6),
-                const Color(0xff111184).withOpacity(0.05),
+              colors: (appBarColor != const Color(0xff3e7dd5)) // Your default/check color
+                  ? [
+                appBarColor.withOpacity(0.9),
+                appBarColor.withOpacity(0.1),
+              ]
+                  : [
+                appBarColor.withOpacity(0.8),
+                appBarColor.withOpacity(0.8),
               ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
             ),
             borderRadius: const BorderRadius.only(
-              bottomLeft: Radius.circular(30),
-              bottomRight: Radius.circular(30),
+              bottomLeft: Radius.circular(20),
+              bottomRight: Radius.circular(20),
             ),
             border: Border.all(
               color: Colors.white.withOpacity(0.4),

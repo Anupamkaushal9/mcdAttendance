@@ -10,6 +10,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_html/flutter_html.dart';
 import 'package:lottie/lottie.dart';
+import 'package:mcd_attendance/Helpers/Constant.dart';
 import '../Helpers/String.dart';
 import 'Widgets/DialogBox.dart';
 import 'Widgets/GlassAppbar.dart';
@@ -45,7 +46,7 @@ class _HelpDeskScreenState extends State<HelpDeskScreen> {
       isLoading = true;
     });
 
-    const String url = 'https://api.mcd.gov.in/app/request';
+    const String url = newBaseUrl;
     const String token =
         'eyJhbGciOiJIUzI1NiJ9.e30.g2PzdcLXSunm0_ZW-5d9ptZSpeXZi0qsh_sTuTTojRs';
 
@@ -124,7 +125,7 @@ class _HelpDeskScreenState extends State<HelpDeskScreen> {
     return Scaffold(
         backgroundColor: Colors.white,
         extendBodyBehindAppBar: true,
-        appBar: const GlassAppBar(title: 'MCD SMART', isLayoutScreen: false),
+        appBar: const GlassAppBar(title: 'MCD PRO', isLayoutScreen: false),
         body: (!isLoading)
             ? SingleChildScrollView(
                 child: Padding(

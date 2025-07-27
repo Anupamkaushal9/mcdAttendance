@@ -16,7 +16,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
     return  Scaffold(
       backgroundColor: Colors.white,
       extendBodyBehindAppBar: true,
-      appBar: const GlassAppBar(title: 'MCD SMART', isLayoutScreen: false),
+      appBar: const GlassAppBar(title: 'MCD PRO', isLayoutScreen: false),
       body: Padding(
         padding:  EdgeInsets.only(left: 8.0,right: 8.0,bottom: 8.0,top: kToolbarHeight+5.h+ MediaQuery.of(context).padding.top),
         child: const Center(

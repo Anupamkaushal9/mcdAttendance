@@ -240,7 +240,7 @@ class _LayoutOldScreenState extends State<LayoutOldScreen>
     final ThemeData theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text("MCD Smart"),
+        title: const Text("MCD PRO"),
         centerTitle: true,
         // backgroundColor: const Color(0xffdff5ce),
       ),
@@ -286,7 +286,9 @@ class _LayoutOldScreenState extends State<LayoutOldScreen>
         HomeScreen(
           bmid: widget.bmid,
           employee: widget.empData,
-          empHistoryData: empHistoryData,
+          //empHistoryData: empHistoryData,
+          inTime: inTiming,
+          outTime: outTiming,
           day: currentDay,
         ),
 
@@ -295,7 +297,7 @@ class _LayoutOldScreenState extends State<LayoutOldScreen>
 
         /// History page
         AttendanceHistoryScreen(
-            empHistoryData: empHistoryData,
+          //  empHistoryData: empHistoryData,
             currentYear: currentYear,
             currentMonth: currentMonth,
             month: month),

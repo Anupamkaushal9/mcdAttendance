@@ -16,6 +16,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:lottie/lottie.dart';
+import 'package:mcd_attendance/Screens/Widgets/GlassAppbar.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../Helpers/ApiBaseHelper.dart';
@@ -27,11 +28,15 @@ import '../Model/EmployeeHistoryModel.dart';
 import '../Utils/fake_location_util.dart';
 import 'dart:math' as math;
 import 'Widgets/DialogBox.dart';
+import 'package:location/location.dart' as loc;
+import 'package:image/image.dart' as img;
 
 class InAttendanceNewUiScreen extends StatefulWidget {
-  final List<EmpHistoryData>? empHistoryData;
+  //final List<EmpHistoryData>? empHistoryData;
+  final String inTime;
+  final String outTime;
   final List<EmpData>? employee;
-  const InAttendanceNewUiScreen({super.key, this.empHistoryData, this.employee});
+  const InAttendanceNewUiScreen({super.key, this.employee, required this.inTime, required this.outTime,});
 
   @override
   State<InAttendanceNewUiScreen> createState() => _InAttendanceNewUiScreenState();
@@ -108,7 +113,10 @@ class _InAttendanceNewUiScreenState extends State<InAttendanceNewUiScreen>
     if (state == AppLifecycleState.resumed) {
       Future.delayed(Duration.zero, () {
         if (mounted && !_isDisposed) {
-          checkForMockLocation(context);
+          // Skip mock location check for iOS
+          if (!Platform.isIOS) {
+            checkForMockLocation(context);
+          }
         }
       });
     }
@@ -152,10 +160,12 @@ class _InAttendanceNewUiScreenState extends State<InAttendanceNewUiScreen>
       }, '_getCurrentLocation');
 
       // 4. Run safety checks
-      await _executeWithMountedCheck(() {
-        checkForMockLocation(context);
-      }, 'checkForMockLocation');
-
+      if(!Platform.isIOS) //check fake gps if android not for ios
+        {
+          await _executeWithMountedCheck(() {
+            checkForMockLocation(context);
+          }, 'checkForMockLocation');
+        }
     } catch (e) {
       debugPrint('Error in _checkInternetAndInitialize: $e');
       _showSafeSnackBar('Initialization failed. Please try again.');
@@ -209,7 +219,7 @@ class _InAttendanceNewUiScreenState extends State<InAttendanceNewUiScreen>
       final frontCamera = cameras.firstWhere(
               (camera) => camera.lensDirection == CameraLensDirection.front);
 
-      cameraController = CameraController(frontCamera, ResolutionPreset.high);
+      cameraController = CameraController(frontCamera, ResolutionPreset.high, enableAudio: false,);
       initializeControllerFuture = cameraController.initialize().then((_) {
         if (mounted && !_isDisposed) {
           setState(() => _isCameraInitialized = true);
@@ -311,12 +321,11 @@ class _InAttendanceNewUiScreenState extends State<InAttendanceNewUiScreen>
       } else {
         await _showSafeDialog(
           FailureDialogNormal(
-            messageApi: errorMessage,
+            messageApi: "$errorMessage $status",
+            comingFrom: 'inAttendance',
             onTryAgain: () async {
-              await getLastAttendance();
             },
             onCancel: () async {
-              await getLastAttendance();
             },
           ),
         );
@@ -326,11 +335,10 @@ class _InAttendanceNewUiScreenState extends State<InAttendanceNewUiScreen>
       await _showSafeDialog(
         FailureDialogNormal(
           messageApi: e.toString(),
+          comingFrom: 'inAttendance',
           onTryAgain: () async {
-            await getLastAttendance();
           },
           onCancel: () async {
-            await getLastAttendance();
           },
         ),
       );
@@ -354,7 +362,7 @@ class _InAttendanceNewUiScreenState extends State<InAttendanceNewUiScreen>
         "deviceId": deviceUniqueId,
         "orgGuid": orgGuid,
         "outEmpPic": base64Image,
-        "inTime": widget.empHistoryData![0].inTime,
+        "inTime": inTiming,
         "outTime": outTiming,
         "outLatAdd": currentLat.toString(),
         "outLonAdd": currentLong.toString(),
@@ -375,12 +383,11 @@ class _InAttendanceNewUiScreenState extends State<InAttendanceNewUiScreen>
       } else {
         await _showSafeDialog(
           FailureDialogNormal(
-            messageApi: errorMessage,
+            messageApi: "$errorMessage $status",
+            comingFrom: 'inAttendance',
             onTryAgain: () async {
-              await getLastAttendance();
             },
             onCancel: () async {
-              await getLastAttendance();
             },
           ),
         );
@@ -390,11 +397,10 @@ class _InAttendanceNewUiScreenState extends State<InAttendanceNewUiScreen>
       await _showSafeDialog(
         FailureDialogNormal(
           messageApi: e.toString(),
+          comingFrom: 'inAttendance',
           onTryAgain: () async {
-            await getLastAttendance();
           },
           onCancel: () async {
-            await getLastAttendance();
           },
         ),
       );
@@ -410,7 +416,7 @@ class _InAttendanceNewUiScreenState extends State<InAttendanceNewUiScreen>
     if (!mounted || _isDisposed) return;
 
     setState(() => _isLoading = true);
-    print('getting last attendance = $orgUnitBasicGuid');
+    debugPrint('getting last attendance = $orgUnitBasicGuid');
     var parameter = {
       "inLatAdd": currentLat,
       "inLonAdd": currentLong,
@@ -530,99 +536,126 @@ class _InAttendanceNewUiScreenState extends State<InAttendanceNewUiScreen>
   }
 
   Widget _buildPermissionDialog(String permissionName) {
-    return AlertDialog(
-      title: const Text('Permission Required'),
-      content: Text(
-        'The $permissionName permission has been permanently denied. '
-            'Please enable it from the app settings to continue.',
-      ),
-      actions: <Widget>[
-        TextButton(
-          onPressed: () async => await openAppSettings(),
-          child: const Text('Open Settings'),
+    return WillPopScope(
+      onWillPop: () async => false,
+      child: AlertDialog(
+        title: const Text('Permission Required'),
+        content: Text(
+          'The $permissionName permission has been permanently denied. '
+              'Please enable it from the app settings to continue.',
         ),
-      ],
+        actions: <Widget>[
+          TextButton(
+            onPressed: () async => await openAppSettings(),
+            child: const Text('Open Settings'),
+          ),
+        ],
+      ),
     );
   }
 
   Future<void> _getCurrentLocation() async {
+    final loc.Location locationService = loc.Location();
     try {
       if (!mounted || _isDisposed) return;
       setState(() => _isLoading = true);
 
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) {
+      // 1. Check and enable GPS service
+      bool gpsEnabled = await locationService.serviceEnabled();
+      if (!gpsEnabled) {
         if (mounted && !_isDisposed) {
-          setState(() => _locationMessage = '');
+          setState(() => _locationMessage = 'GPS is disabled');
         }
-        _showSafeSnackBar("Please enable Location.");
-        await _showSafeDialog(_buildPermissionDialog("Location"));
+
+        // Show system GPS enable dialog
+        bool serviceEnabled = await locationService.requestService();
+        if (!serviceEnabled) {
+          if (mounted && !_isDisposed) {
+            Navigator.pop(context); // Go back to previous screen
+          }
+          return;
+        }
+      }
+
+      // 2. Check location permission
+      Map<Permission, PermissionStatus> status = await [Permission.location].request();
+      if (!status[Permission.location]!.isGranted) {
+        _showSafeSnackBar("Location permission is required");
+        await openAppSettings();
         return;
       }
 
-      Map<Permission, PermissionStatus> status = await [Permission.location].request();
-      if (status[Permission.location]!.isGranted) {
-        Position position = await Geolocator.getCurrentPosition(
-            desiredAccuracy: LocationAccuracy.best);
+      // 3. Get current position
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.best,
+      );
 
-        if (position.isMocked) {
-          await _showSafeDialog(showMockLocationDialog(context));
+      // 4. Check for mock location
+      if(!Platform.isIOS)
+        {
+          if (position.isMocked) {
+            await _showSafeDialog(showMockLocationDialog(context));
+            return;
+          }
         }
 
-        if (mounted && !_isDisposed) {
-          setState(() {
-            _locationMessage = 'Latitude: ${position.latitude}, Longitude: ${position.longitude}';
-            currentLat = position.latitude;
-            currentLong = position.longitude;
-          });
-        }
 
-        try {
-          List<Placemark> placemarks = await placemarkFromCoordinates(
-            position.latitude,
-            position.longitude,
-          ).timeout(const Duration(seconds: 5));
-
-          if (placemarks.isNotEmpty) {
-            Placemark place = placemarks[0];
-            address = "${place.name}, ${place.locality}, ${place.country}";
-            if (mounted && !_isDisposed) {
-              setState(() => _locationMessage = address);
-            }
-          }
-        } catch (e) {
-          if (mounted && !_isDisposed) {
-            setState(() => _locationMessage = 'Failed to get address: $e');
-          }
-          _showSafeSnackBar('Failed to fetch address: $e');
-        }
-
-        _attendanceTimer?.cancel();
-        _attendanceTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-          if (_remainingTime > 0) {
-            if (mounted && !_isDisposed) {
-              setState(() => _remainingTime--);
-            }
-          } else {
-            timer.cancel();
-            if (mounted && !_isDisposed) {
-              setState(() {
-                currentLat = 0.0;
-                currentLong = 0.0;
-                address = '';
-              });
-            }
-            _showSafeDialog(const TimeOutDialog());
-          }
+      // 5. Update position state
+      if (mounted && !_isDisposed) {
+        setState(() {
+          currentLat = position.latitude;
+          currentLong = position.longitude;
+          _locationMessage = 'Lat: ${position.latitude}, Long: ${position.longitude}';
         });
-      } else {
-        _showSafeSnackBar("Location permission is required.");
-        await openAppSettings();
       }
+
+      // 6. Get address from coordinates
+      try {
+        List<Placemark> placemarks = await placemarkFromCoordinates(
+          position.latitude,
+          position.longitude,
+        ).timeout(const Duration(seconds: 5));
+
+        if (placemarks.isNotEmpty) {
+          Placemark place = placemarks[0];
+          address = "${place.name}, ${place.locality}, ${place.country}";
+          if (mounted && !_isDisposed) {
+            setState(() => _locationMessage = address);
+          }
+        }
+      } catch (e) {
+        if (mounted && !_isDisposed) {
+          setState(() => _locationMessage = 'Address lookup failed: ${e.toString()}');
+        }
+        _showSafeDialog(LocationExceptionDialog(errorDetails: e.toString()));
+        _showSafeSnackBar('Failed to get address');
+      }
+
+      // 7. Start attendance timer
+      _attendanceTimer?.cancel();
+      _attendanceTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+        if (_remainingTime > 0) {
+          if (mounted && !_isDisposed) {
+            setState(() => _remainingTime--);
+          }
+        } else {
+          timer.cancel();
+          if (mounted && !_isDisposed) {
+            setState(() {
+              currentLat = 0.0;
+              currentLong = 0.0;
+              address = '';
+            });
+          }
+          _showSafeDialog(const TimeOutDialog());
+        }
+      });
+
     } catch (e) {
       if (mounted && !_isDisposed) {
-        setState(() => _locationMessage = 'Failed to get location: $e');
+        setState(() => _locationMessage = 'Location error: ${e.toString()}');
       }
+      _showSafeSnackBar('Failed to get location');
     } finally {
       if (mounted && !_isDisposed) {
         setState(() => _isLoading = false);
@@ -689,16 +722,11 @@ class _InAttendanceNewUiScreenState extends State<InAttendanceNewUiScreen>
       if (image.path.isNotEmpty) {
         Uint8List imageBytes = await image.readAsBytes();
         base64Image = base64Encode(imageBytes);
-
-        if (widget.empHistoryData != null && widget.empHistoryData!.isNotEmpty) {
-          if (inTiming.isNotEmpty) {
+        if (inTiming.isNotEmpty) {
             await saveOutAttendance();
           } else {
             await saveInAttendance();
           }
-        } else {
-          await saveInAttendance();
-        }
         await getLastAttendance();
       }
     } catch (e) {
@@ -718,27 +746,7 @@ class _InAttendanceNewUiScreenState extends State<InAttendanceNewUiScreen>
       key: _scaffoldMessengerKey,
       child: Scaffold(
         backgroundColor: Colors.white,
-        appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          automaticallyImplyLeading: false,
-          leading: Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: GestureDetector(
-              onTap: () => Navigator.pop(context),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.transparent,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.black, width: 0.5),
-                ),
-                padding: const EdgeInsets.all(8),
-                child: const Icon(Icons.arrow_back, color: Colors.black),
-              ),
-            ),
-          ),
-          title: const Text("MCD SMART"),
-          centerTitle: true,
-        ),
+        appBar: const GlassAppBar(title: 'MCD PRO', isLayoutScreen: false),
         body: _isNetworkAvail
             ? !_isLoading && !_isAuthenticating && _cachedMapWidget != null && _isCameraInitialized
             ? SingleChildScrollView(
@@ -778,25 +786,33 @@ class _InAttendanceNewUiScreenState extends State<InAttendanceNewUiScreen>
                               style: const TextStyle(fontWeight: FontWeight.w600),
                             ),
                             SizedBox(height: 10.h),
-                            Text(
-                              'Name : ${empTempData[0].empName!}',
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w500,
-                                color: Colors.black,
+                            SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Name : ${empName??''}',
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w500,
+                                      color: Colors.black,
+                                    ),
+                                  ),
+                                  SizedBox(height: 10.h),
+                                  Text(
+                                    'Latitude : ${double.parse(currentLat.toStringAsFixed(6))}',
+                                    style: const TextStyle(fontWeight: FontWeight.w600),
+                                  ),
+                                  SizedBox(height: 10.h),
+                                  Text(
+                                    'Longitude : ${double.parse(currentLong.toStringAsFixed(6))}',
+                                    style: const TextStyle(fontWeight: FontWeight.w600),
+                                  ),
+                                  SizedBox(height: 10.h),
+                                ],
                               ),
                             ),
-                            SizedBox(height: 10.h),
-                            Text(
-                              'Latitude : ${double.parse(currentLat.toStringAsFixed(6))}',
-                              style: const TextStyle(fontWeight: FontWeight.w600),
-                            ),
-                            SizedBox(height: 10.h),
-                            Text(
-                              'Longitude : ${double.parse(currentLong.toStringAsFixed(6))}',
-                              style: const TextStyle(fontWeight: FontWeight.w600),
-                            ),
-                            SizedBox(height: 10.h),
                             Text(
                               'Mark attendance in: ${_formatDuration(_remainingTime)}',
                               style:  TextStyle(
@@ -851,18 +867,17 @@ class _InAttendanceNewUiScreenState extends State<InAttendanceNewUiScreen>
                 ),
               ),
               SizedBox(
-                height: height! * 0.25,
                 child: Padding(
                   padding: const EdgeInsets.all(12.0),
                   child: Column(
                     children: [
-                      Expanded(
+                      SizedBox( // Added fixed height container
+                        //height: 60, // Adjust this value as needed
                         child: TextField(
                           controller: remarkController,
                           scrollPadding: const EdgeInsets.only(bottom: 120),
                           maxLines: null,
-                          expands: true,
-                          decoration: const InputDecoration(
+                          decoration: const InputDecoration( // Removed 'expands: true'
                             border: OutlineInputBorder(),
                             hintText: 'Type your message here',
                           ),

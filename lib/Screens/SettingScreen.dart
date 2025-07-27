@@ -35,7 +35,7 @@ class _SettingScreenState extends State<SettingScreen> {
     setState(() {
       userName = prefs.getString('user_name')!;
     });
-    print(userName);
+    debugPrint(userName);
   }
 
   Future<void> _clearPreference() async {
@@ -73,7 +73,7 @@ class _SettingScreenState extends State<SettingScreen> {
       final String error = getData['error'].toString();
       final String status = getData['status'].toString();
 
-      print("API Response: $getData");
+      debugPrint("API Response: $getData");
 
       if (!mounted) return;
 

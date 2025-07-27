@@ -57,8 +57,23 @@ class _EmpHistoryWidgetState extends State<EmpHistoryWidget> {
     }
   }
 
+  Color _getColorFromString(String? colorString) {
+    switch (colorString?.toLowerCase()) {
+      case 'red':
+        return Colors.red;
+      case 'green':
+        return Colors.green;
+      case 'black':
+        return Colors.black;
+      default:
+        return Colors.grey[600]!; // fallback color
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    print("clockInValue:$clockInValue");
+    print("clockOutValue:$clockOutValue");
     return Container(
       padding: EdgeInsets.only(top: 10.h, bottom: 10.h, left: 15.w, right: 0),
       color: Colors.white,
@@ -92,56 +107,38 @@ class _EmpHistoryWidgetState extends State<EmpHistoryWidget> {
                                     ),
                                   ),
                                   SizedBox(width: 6.w),
-                                  Text(
-                                    '$clockInValue',
-                                    style: TextStyle(
-                                      fontSize: 15.sp,
-                                      color: Colors.grey[700],
+                                  Expanded(
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(vertical: 2),
+                                      child: Visibility(
+                                        visible:clockInValue!="-",
+                                        child: RichText(
+                                          text: TextSpan(
+                                            children: [
+                                              TextSpan(
+                                                text: '$clockInValue ',
+                                                style: TextStyle(
+                                                  fontSize: 15.sp,
+                                                  color: Colors.grey[700],
+                                                ),
+                                              ),
+                                              TextSpan(
+                                                text: '(I)',
+                                                style: TextStyle(
+                                                  fontSize: 15.sp,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: _getColorFromString(widget.empHistoryData.inAttnColor),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
                                     ),
                                   ),
                                 ],
                               ),
                               SizedBox(height: 6.h),
-                              // Fixed In Address Section
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Icon(Icons.location_on_sharp, size: 20.w, color: Colors.green),
-                        SizedBox(width: 12.w),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              RichText(
-                                text: TextSpan(
-                                  children: [
-                                    TextSpan(
-                                      text: 'In Address: ',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16.sp,
-                                        color: Colors.black,
-                                      ),
-                                    ),
-                                    TextSpan(
-                                      text: widget.empHistoryData.inLocAddInfo?.isNotEmpty == true
-                                          ? widget.empHistoryData.inLocAddInfo!
-                                          : 'Address not available',
-                                      style: TextStyle(
-                                        fontSize: 15.sp,
-                                        color: Colors.grey[600],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                softWrap: true,
-                              ),
                             ],
                           ),
                         ),
@@ -172,56 +169,37 @@ class _EmpHistoryWidgetState extends State<EmpHistoryWidget> {
                                   ),
                                   SizedBox(width: 6.w),
                                   Expanded(
-                                    child: Text(
-                                      '$clockOutValue',
-                                      style: TextStyle(
-                                        fontSize: 15.sp,
-                                        color: Colors.grey[700],
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(vertical: 2),
+                                      child: Visibility(
+                                        visible:clockOutValue!="-",
+                                        child: RichText(
+                                          text: TextSpan(
+                                            children: [
+                                              TextSpan(
+                                                text: '$clockOutValue ',
+                                                style: TextStyle(
+                                                  fontSize: 15.sp,
+                                                  color: Colors.grey[700],
+                                                ),
+                                              ),
+                                              TextSpan(
+                                                text: '(O)',
+                                                style: TextStyle(
+                                                  fontSize: 15.sp,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: _getColorFromString(widget.empHistoryData.outAttnColor),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
                                       ),
                                     ),
                                   ),
                                 ],
                               ),
                               SizedBox(height: 6.h),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Icon(Icons.location_on_sharp, size: 20.w, color: Colors.red),
-                        SizedBox(width: 12.w),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              RichText(
-                                text: TextSpan(
-                                  children: [
-                                    TextSpan(
-                                      text: 'Out Address: ',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16.sp,
-                                        color: Colors.black,
-                                      ),
-                                    ),
-                                    TextSpan(
-                                      text: widget.empHistoryData.outLocAddInfo?.isNotEmpty == true
-                                          ? widget.empHistoryData.outLocAddInfo!
-                                          : 'Address not available',
-                                      style: TextStyle(
-                                        fontSize: 15.sp,
-                                        color: Colors.grey[600],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                softWrap: true,
-                              ),
                             ],
                           ),
                         ),
@@ -244,7 +222,7 @@ class _EmpHistoryWidgetState extends State<EmpHistoryWidget> {
                           ),
                         ),
                         Text(
-                          workingHrValue.isNotEmpty==true?workingHrValue:"Not Available",
+                          workingHrValue.isNotEmpty == true ? workingHrValue : "-",
                           style: TextStyle(
                             fontSize: 15.sp,
                             color: Colors.grey[700],
@@ -293,6 +271,5 @@ class _EmpHistoryWidgetState extends State<EmpHistoryWidget> {
         ],
       ),
     );
-
   }
 }

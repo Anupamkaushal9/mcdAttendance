@@ -366,8 +366,7 @@ class _SuccessDialogState extends State<SuccessDialog> {
                 setState(() {
                   isLoading = true;
                 });
-                getEmpHistory().then((getData) {
-                  getLastAttendance();
+                getLastAttendance().then((getData) {
                   Navigator.pop(context);
                   Navigator.pushAndRemoveUntil(
                     context,
@@ -391,8 +390,8 @@ class _SuccessDialogState extends State<SuccessDialog> {
                       ),
                     )
                   :  Text(
-                      "OK",
-                      style: TextStyle(fontSize: 16.sp),
+                      "Okay",
+                      style: TextStyle(fontSize: 16.sp,color: Colors.white),
                     ),
             ),
           ),
@@ -566,8 +565,8 @@ class _SuccessDialogForSuperState extends State<SuccessDialogForSuper> {
                 ),
               )
                   :  Text(
-                "OK",
-                style: TextStyle(fontSize: 16.sp),
+                "Okay",
+                style: TextStyle(fontSize: 16.sp,color: Colors.white),
               ),
             ),
           ),
@@ -744,8 +743,8 @@ class _SuccessDialogNormalState extends State<SuccessDialogNormal> {
                 ),
               )
                   :  Text(
-                "OK",
-                style: TextStyle(fontSize: 16.sp),
+                "Okay",
+                style: TextStyle(fontSize: 16.sp,color: Colors.white),
               ),
             ),
           ),
@@ -919,8 +918,8 @@ class _SuccessDialogNormalForSupervisorState extends State<SuccessDialogNormalFo
                 ),
               )
                   :  Text(
-                "OK",
-                style: TextStyle(fontSize: 16.sp),
+                "Okay",
+                style: TextStyle(fontSize: 16.sp,color: Colors.white),
               ),
             ),
           ),
@@ -932,8 +931,8 @@ class _SuccessDialogNormalForSupervisorState extends State<SuccessDialogNormalFo
 
 class FailureDialog extends StatelessWidget {
   final VoidCallback onTryAgain;
-
-  const FailureDialog({Key? key, required this.onTryAgain}) : super(key: key);
+  final String? comingFrom;
+  const FailureDialog({Key? key, required this.onTryAgain,this.comingFrom}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -998,20 +997,29 @@ class FailureDialog extends StatelessWidget {
               Expanded(
                 child: OutlinedButton(
                   style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Colors.grey),
+                    side: const BorderSide(color: Colors.black),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
                   onPressed: () {
-                    Navigator.pop(
-                        context); // Close the dialog and navigate back
-                    Navigator.pop(
-                        context); // Navigate back to the previous screen
+                    (comingFrom=='inAttendance')?Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => LayoutScreen(
+                            bmid: userBmid,
+                            empData: empTempData,
+                          )),
+                          (Route<dynamic> route) => false,
+                    ):Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(builder: (context) => const EmployeeListScreen(comingFrom: 'superHome',)),
+                          (route) => route.isFirst, // Remove all previous routes
+                    );
                   },
                   child:  Text(
                     "Cancel",
-                    style: TextStyle(fontSize: 16.sp),
+                    style: TextStyle(fontSize: 16.sp,color: Colors.black),
                   ),
                 ),
               ),
@@ -1027,7 +1035,8 @@ class FailureDialogNormal extends StatelessWidget {
   final VoidCallback onTryAgain;
   final VoidCallback onCancel;
   final String? messageApi;
-  const FailureDialogNormal({Key? key, required this.onTryAgain, this.messageApi, required this.onCancel}) : super(key: key);
+  final String? comingFrom ;
+  const FailureDialogNormal({Key? key, required this.onTryAgain, this.messageApi, required this.onCancel,this.comingFrom}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -1067,7 +1076,7 @@ class FailureDialogNormal extends StatelessWidget {
           Visibility(visible: messageApi!='',
               child:  SizedBox(height: 10.h)),
            Text(
-            "Please try again or cancel to exit.",
+            "Please try again!",
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 16.sp,
@@ -1079,42 +1088,32 @@ class FailureDialogNormal extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               Expanded(
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  onPressed: () {
-                    Navigator.pop(context); // Close the dialog
-                    onTryAgain(); // Call onTryAgain callback
-                  },
-                  child:  Text(
-                    "Try Again",
-                    style: TextStyle(fontSize: 16.sp, color: Colors.white),
-                  ),
-                ),
-              ),
-               SizedBox(
-                width: 15.w,
-              ),
-              Expanded(
                 child: OutlinedButton(
                   style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Colors.grey),
+                    side: const BorderSide(color: Colors.black),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
                   onPressed: () {
-                    Navigator.pop(
-                        context); // Close the dialog and navigate back
+                    (comingFrom=='inAttendance')?Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => LayoutScreen(
+                            bmid: userBmid,
+                            empData: empTempData,
+                          )),
+                          (Route<dynamic> route) => false,
+                    ):Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(builder: (context) => const EmployeeListScreen(comingFrom: 'superHome',)),
+                          (route) => route.isFirst, // Remove all previous routes
+                    );
                     onCancel();
                   },
                   child:  Text(
-                    "Cancel",
-                    style: TextStyle(fontSize: 16.sp),
+                    "Okay",
+                    style: TextStyle(fontSize: 16.sp,color: Colors.black),
                   ),
                 ),
               ),
@@ -1479,6 +1478,7 @@ class TimeOutDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
+      backgroundColor: Colors.white,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
       ),
@@ -1495,7 +1495,7 @@ class TimeOutDialog extends StatelessWidget {
           ),
            SizedBox(height: 5.h),
            Text(
-            "You are out of time!",
+            "Attendance time is over!",
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 20.sp,
@@ -1609,6 +1609,77 @@ class SomethingWentWrongDialog extends StatelessWidget {
   }
 }
 
+class LocationExceptionDialog extends StatelessWidget {
+  final String errorDetails;
+  const LocationExceptionDialog({
+    super.key, required this.errorDetails,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return WillPopScope(
+      onWillPop: () async => false,
+      child: AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        contentPadding: const EdgeInsets.all(20),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // You can use a Lottie animation for no internet or any static icon
+            LottieBuilder.asset(
+                'assets/animations/something_went_wrong.json', // Put the correct asset path for no internet animation
+                repeat: true,
+                height: 200.h,
+                width: 200.w,
+                fit :BoxFit.fitWidth
+            ),
+            SizedBox(height: 5.h),
+            Text(
+              "Location Exception Error!",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 20.sp,
+                fontWeight: FontWeight.bold,
+                color: Colors.red,
+              ),
+            ),
+            SizedBox(height: 10.h),
+            const Text('Please restart your device then try again',textAlign: TextAlign.center,),
+            SizedBox(height: 10.h),
+            Text(
+              errorDetails,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.red),
+            ),
+            SizedBox(height: 10.h),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xff111184),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                onPressed: () {
+                  (Platform.isAndroid)?FlutterExitApp.exitApp():FlutterExitApp.exitApp(iosForceExit: true);// Close the dialog
+                  Navigator.pop(context);
+                },
+                child:  Text(
+                  "Okay",
+                  style: TextStyle(fontSize: 16.sp, color: Colors.white),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class DeRegisterSuccessDialog extends StatelessWidget {
   const DeRegisterSuccessDialog({
     super.key,
@@ -1667,6 +1738,69 @@ class DeRegisterSuccessDialog extends StatelessWidget {
         ),
       )
 
+    );
+  }
+}
+
+class UpdateDialog extends StatelessWidget {
+  const UpdateDialog({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return WillPopScope(
+      onWillPop: () async => false,
+      child: AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        contentPadding: const EdgeInsets.all(20),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+             const Icon(Icons.warning, color: Colors.orangeAccent, size: 70),
+             SizedBox(height: 5.h),
+             Text(
+              "Updates are available",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 20.sp,
+                fontWeight: FontWeight.bold,
+                color: Colors.red,
+              ),
+            ),
+             SizedBox(height: 10.h),
+             Text(
+              "Update the app",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 16.sp,
+                color: Colors.black87,
+              ),
+            ),
+             SizedBox(height: 20.h),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor:  const Color(0xff111184),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                onPressed: () {
+                  (Platform.isAndroid)
+                      ? FlutterExitApp.exitApp()
+                      : FlutterExitApp.exitApp(iosForceExit: true);
+                },
+                child: const Text(
+                  "Okay",
+                  style: TextStyle(fontSize: 16, color: Colors.white),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

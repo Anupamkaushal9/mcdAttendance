@@ -53,7 +53,7 @@ class _DeviceRegistrationScreenState extends State<DeviceRegistrationScreen> {
 
   Future<void> _setEmpDataSharedPrefrence(List<EmpData> data) async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
-    print('empData = $widget.empData');
+    debugPrint('empData = $widget.empData');
     // Convert list to a JSON string
     String jsonString = jsonEncode(data);
     String? getJsonString = '';
@@ -65,7 +65,7 @@ class _DeviceRegistrationScreenState extends State<DeviceRegistrationScreen> {
         getJsonString = prefs.getString('employeeData')!;
       });
     }
-    print('employeeData>>>> = $getJsonString');
+    debugPrint('employeeData>>>> = $getJsonString');
   }
 
   Future<void> getEmpFaceData() async {
@@ -89,7 +89,7 @@ class _DeviceRegistrationScreenState extends State<DeviceRegistrationScreen> {
         .then((getData) {
       String error = getData['error'].toString();
       String? msg = getData['status'].toString();
-      print("API Response: $getData");
+      debugPrint("API Response: $getData");
 
       if (msg == 'TRUE') {
         var data = getData['msg'];
@@ -106,8 +106,8 @@ class _DeviceRegistrationScreenState extends State<DeviceRegistrationScreen> {
                   Text('Face data fetched successfully. Remarks: $remarks')),
         );
 
-        print('Base64 Image: $efmImg');
-        print('Image Path: $efmPath');
+        debugPrint('Base64 Image: $efmImg');
+        debugPrint('Image Path: $efmPath');
 
         // After both APIs are successful, navigate to the LayoutScreen
         if (mounted) {
@@ -153,8 +153,8 @@ class _DeviceRegistrationScreenState extends State<DeviceRegistrationScreen> {
         userBmid = prefs.getString('user_bmid')!;
       });
     }
-    print('userBmid = $userBmid');
-    print("userName = $prefs.getString('user_name')!");
+    debugPrint('userBmid = $userBmid');
+    debugPrint("userName = $prefs.getString('user_name')!");
   }
 
   registerDevice(String empGuid, String deviceId, String orgGuid) async {
@@ -208,7 +208,7 @@ class _DeviceRegistrationScreenState extends State<DeviceRegistrationScreen> {
                   (Route<dynamic> route) => false,
             );
           }).catchError((e) {
-            print("Cannot navigate");
+            debugPrint("Cannot navigate");
           });
         } else if (error == 'DEVICE ALREADY REGISTERED.') {
           // Handle case when device is already registered

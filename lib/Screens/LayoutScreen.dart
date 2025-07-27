@@ -7,6 +7,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
 import 'package:lottie/lottie.dart';
+import 'package:http/http.dart' as http;
+import 'package:mcd_attendance/Helpers/Constant.dart';
 import 'package:mcd_attendance/Screens/AttendanceHistoryScreen.dart';
 import 'package:mcd_attendance/Screens/HomeScreen.dart';
 import 'package:mcd_attendance/Screens/LoginScreen.dart';
@@ -23,6 +25,7 @@ import '../Helpers/ApiBaseHelper.dart';
 import '../Helpers/AppBtn.dart';
 import '../Helpers/Session.dart';
 import '../Helpers/String.dart';
+import '../Model/ColorSchemaModel.dart';
 import '../Model/Employee.dart';
 import '../Model/EmployeeHistoryModel.dart';
 import '../providers/BottomNavProvider.dart';
@@ -78,6 +81,98 @@ class _LayoutScreenState extends State<LayoutScreen>
     }
   }
 
+  Future<ColorSchema?> fetchColorSchemaGET(String date) async {
+    setState(() {
+      _isLoading = true;
+    });
+    const String url = newBaseUrl;
+    const String token = 'eyJhbGciOiJIUzI1NiJ9.e30.g2PzdcLXSunm0_ZW-5d9ptZSpeXZi0qsh_sTuTTojRs';
+
+    // Default colors
+    Color defaultBodyColor = Colors.white;
+    Color defaultAppBarColor = const Color(0xff3e7dd5);
+    Color defaultBottomNavColor = Colors.white30;
+    String defaultEvent = '';
+
+    var headers = {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token',
+    };
+
+    try {
+      var request = http.Request('GET', Uri.parse(url));
+      request.body = json.encode({
+        "module": "color",
+        "event": "schema",
+        "params": {"date": date},
+      });
+      request.headers.addAll(headers);
+
+      debugPrint('Sending GET request with body');
+      debugPrint('Request Body: ${request.body}');
+
+      http.StreamedResponse response = await request.send();
+      String responseBody = await response.stream.bytesToString();
+      debugPrint('API Response: $responseBody');
+
+      final Map<String, dynamic> data = json.decode(responseBody);
+
+      if (response.statusCode == 200) {
+        if (data['code'] == 2 && data['data'] != null) {
+          final colorData = data['data'] as Map<String, dynamic>;
+
+          // Parse colors with fallback to defaults
+          bodyColor = _parseColor(colorData['body'], defaultBodyColor);
+          appBarColor = _parseColor(colorData['header'], defaultAppBarColor);
+          bottomNavColor = _parseColor(colorData['footer'], defaultBottomNavColor);
+          event = colorData['event'] ?? defaultEvent;
+
+          debugPrint('Applied Colors:');
+          debugPrint('Body: $bodyColor');
+          debugPrint('AppBar: $appBarColor');
+          debugPrint('BottomNav: $bottomNavColor');
+
+          return ColorSchema(
+            header: appBarColor.toString(),
+            body: bodyColor.toString(),
+            footer: bottomNavColor.toString(),
+          );
+        }
+      }
+
+      return null;
+    } catch (e) {
+      debugPrint('Error fetching color schema: $e');
+      return null;
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+
+  Color _parseColor(dynamic colorString, Color defaultColor) {
+    try {
+      if (colorString == null || colorString.toString().isEmpty) {
+        return defaultColor;
+      }
+
+      String hexColor = colorString.toString();
+      if (hexColor.startsWith('#')) {
+        hexColor = '0xff${hexColor.substring(1)}';
+      } else if (!hexColor.startsWith('0xff')) {
+        hexColor = '0xff$hexColor';
+      }
+
+      return Color(int.parse(hexColor));
+    } catch (e) {
+      debugPrint('Error parsing color $colorString: $e');
+      return defaultColor;
+    }
+  }
+
+
   Future<void> getUserFaceData() async {
     try {
       final SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -95,6 +190,7 @@ class _LayoutScreenState extends State<LayoutScreen>
       if (base64Image == null || base64Image.isEmpty) {
         // Optionally set a default image or leave userPhoto as null
         // userPhoto = defaultPhotoBytes; // if you have a default
+        userPhoto = null;
         return;
       }
 
@@ -133,6 +229,8 @@ class _LayoutScreenState extends State<LayoutScreen>
   @override
   void initState() {
     super.initState();
+    fetchColorSchemaGET(DateTime.now().toIso8601String().split('T')[0]);
+    // fetchColorSchemaGET('2025-08-15');
     startColor = getRandomMediumColor();
     endColor = getRandomMediumColor();
     // Initialize tab bar controller
@@ -188,7 +286,7 @@ class _LayoutScreenState extends State<LayoutScreen>
 
     // Other async calls
     checkNetwork();
-    getEmpHistory();
+    //getEmpHistory();
     getLastAttendance();
   }
 
@@ -205,7 +303,7 @@ class _LayoutScreenState extends State<LayoutScreen>
   }
 
   getEmpHistory() async {
-    print("Layout History is running");
+    debugPrint("Layout History is running");
     await Future.delayed(const Duration(seconds: 2));
     var parameter = {
       "orgUnitGuid": "2493c2cd-5510-451d-9afe-e1a1468d0ac2",
@@ -248,7 +346,7 @@ class _LayoutScreenState extends State<LayoutScreen>
                         .map<EmpHistoryData>((json) => EmpHistoryData.fromJson(json))
                         .toList();
                     isFreshUser = empHistoryData == null || empHistoryData!.isEmpty;
-                    print('historyData =' + empHistoryData![0].inTime!);
+                    debugPrint('historyData =' + empHistoryData![0].inTime!);
                     _isLoading = false;
                   } catch (e) {
                     _showNullValueError("Error parsing attendance data: ${e.toString()}....getHistory API");
@@ -258,7 +356,7 @@ class _LayoutScreenState extends State<LayoutScreen>
                 });
               }
             } else {
-              print(error+msg);
+              debugPrint(error+msg);
               _isLoading = false;
             }
           },
@@ -307,8 +405,8 @@ class _LayoutScreenState extends State<LayoutScreen>
 
             if (mounted) {
               setState(() {
-                print('In Time: $inTime');
-                print('Out Time: $outTime');
+                debugPrint('In Time: $inTime');
+                debugPrint('Out Time: $outTime');
 
                 DateTime now = DateTime.now();
 
@@ -413,13 +511,13 @@ class _LayoutScreenState extends State<LayoutScreen>
     final bottomNavProvider = Provider.of<BottomNavigationProvider>(context);
     switch (bottomNavProvider.currentIndex) {
       case 1:
-        return "MCD SMART - ATTENDANCE";
+        return "MCD PRO - ATTENDANCE";
       case 2:
-        return "MCD SMART - SERVICES";
+        return "MCD PRO - SERVICES";
       case 3:
-        return "MCD SMART - SETTINGS";
+        return "MCD PRO - SETTINGS";
       default:
-        return "MCD SMART";
+        return "MCD PRO";
     }
   }
 
@@ -440,7 +538,9 @@ class _LayoutScreenState extends State<LayoutScreen>
       HomeScreen(
           bmid: userBmid,
           employee: widget.empData,
-          empHistoryData: empHistoryData,
+         // empHistoryData: empHistoryData,
+          inTime: inTiming,
+          outTime: outTiming,
           day: currentDay), // Screen for Meetings
       const SupervisorScreen(),
       const MenuScreen(), // Screen for Notifications
@@ -469,44 +569,59 @@ class _LayoutScreenState extends State<LayoutScreen>
             height: 50.h,
             width: 50.w,
           )),
-      bottomNavigationBar: MotionTabBar(
-        textStyle: TextStyle(fontSize: 16.sp),
-        controller: _motionTabBarController,
-        initialSelectedTab: "Home", // The initial tab to select
-        labels: const [
-          "Home",
-          "Attendance",
-          "Services",
-          "Settings",
-        ],
-        icons: const [
-          Icons.home,
-          Icons.person_pin,
-          Icons.star,
-          Icons.settings,
-        ],
-        tabSize: 50, // Set tab size
-        tabBarHeight: 60, // Set height of the tab bar
-        tabIconColor: const Color(0xff111184),
-        tabIconSize: 28.0,
-        tabIconSelectedSize: 26.0,
-        tabSelectedColor: const Color(0xff111184),
-        tabIconSelectedColor: Colors.white,
-        tabBarColor: Colors.white30,
-        onTabItemSelected: (int index) {
-          // setState(() {
-          //   currentPageIndex = index;
-          //   // Additional logic for specific pages if needed
-          //   if (currentPageIndex == 0 ) {
-          //     getEmpHistory(); // Example: You can add logic based on selected index
-          //   }
-          // });
-          bottomNavProvider.currentIndex = index;
-          if (index == 0) {
-            getEmpHistory();
-            getLastAttendance();
-          }
-        },
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: (bottomNavColor != Colors.white30)
+                ? [
+              bodyColor.withOpacity(0.1),          // Very subtle body color
+              bottomNavColor.withOpacity(0.3),          // Slightly more visible
+              bottomNavColor.withOpacity(0.6),     // Start showing nav color
+              bottomNavColor.withOpacity(0.9),     // Strong presence
+              bottomNavColor.withOpacity(1.0),     // Full intensity
+            ]
+                : [
+              bottomNavColor.withOpacity(1.0),     // Solid color
+              bottomNavColor.withOpacity(1.0),     // Solid color
+            ],
+            stops: (bottomNavColor != Colors.white30)
+                ? [0.0, 0.3, 0.6, 0.8, 1.0]             // Control color distribution
+                : null,                                  // Even distribution for solid
+          )
+        ),
+        child: MotionTabBar(
+          textStyle: TextStyle(fontSize: 16.sp),
+          controller: _motionTabBarController,
+          initialSelectedTab: "Home",
+          labels: const [
+            "Home",
+            "Attendance",
+            "Services",
+            "Settings",
+          ],
+          icons: const [
+            Icons.home,
+            Icons.person_pin,
+            Icons.star,
+            Icons.settings,
+          ],
+          tabSize: 50,
+          tabBarHeight: 60,
+          tabIconColor: const Color(0xff111184),
+          tabIconSize: 28.0,
+          tabIconSelectedSize: 26.0,
+          tabSelectedColor: const Color(0xff111184),
+          tabIconSelectedColor: Colors.white,
+          tabBarColor: Colors.white30, // Make the tab bar background transparent
+          onTabItemSelected: (int index) {
+            bottomNavProvider.currentIndex = index;
+            if (index == 0) {
+              getLastAttendance();
+            }
+          },
+        ),
       ),
     );
   }

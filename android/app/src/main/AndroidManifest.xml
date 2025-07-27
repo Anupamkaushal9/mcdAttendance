@@ -9,7 +9,6 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION"/>
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
@@ -17,7 +16,7 @@
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
     <uses-sdk android:minSdkVersion="24"/>
     <application
-        android:label="mcd_attendance"
+        android:label="MCD PRO"
         android:enableOnBackInvokedCallback="true"
         android:requestLegacyExternalStorage="true"
         android:usesCleartextTraffic="true"

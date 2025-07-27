@@ -56,7 +56,7 @@ class _NewLayoutScreenState extends State<NewLayoutScreen>
     return Scaffold(
       appBar: AppBar(
         iconTheme: const IconThemeData(color: Colors.black),
-        title: const Text("MCD SMART"),
+        title: const Text("MCD PRO"),
         centerTitle: true,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black),

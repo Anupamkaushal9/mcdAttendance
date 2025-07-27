@@ -70,7 +70,7 @@ class _AddTaskFormScreenState extends State<AddTaskFormScreen> {
     }
 
     // API Request
-    const url = 'https://api.mcd.gov.in/app/request';
+    const url = newBaseUrl;
     const token = 'eyJhbGciOiJIUzI1NiJ9.e30.g2PzdcLXSunm0_ZW-5d9ptZSpeXZi0qsh_sTuTTojRs';
 
     final requestBody = {
@@ -225,7 +225,7 @@ class _AddTaskFormScreenState extends State<AddTaskFormScreen> {
     return Scaffold(
       appBar: AppBar(
         iconTheme: const IconThemeData(color: Colors.black),
-        title: const Text("MCD Smart"),
+        title: const Text("MCD PRO"),
         centerTitle: true,
       ),
       body: SingleChildScrollView(

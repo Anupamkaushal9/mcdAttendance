@@ -1,13 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:mcd_attendance/Screens/AttendanceHistoryScreen.dart';
 import 'package:mcd_attendance/Screens/EmployeeListScreen.dart';
+import 'package:mcd_attendance/Screens/LOPScreen.dart';
+import 'package:mcd_attendance/Screens/ManageLeavesScreen.dart';
+import 'package:mcd_attendance/Screens/OutdoorDutyScreen.dart';
 import 'package:provider/provider.dart';
 
 import '../Helpers/ApiBaseHelper.dart';
 import '../Helpers/String.dart';
 import '../Model/EmployeeHistoryModel.dart';
 import '../providers/BottomNavProvider.dart';
+import 'DeRegisterHistoryScreen.dart';
+import 'OuCheckerScreen.dart';
+import 'TransferHistoryScreen.dart';
 import 'Widgets/DialogBox.dart';
 
 class SupervisorScreen extends StatefulWidget {
@@ -26,24 +33,12 @@ class _SupervisorScreenState extends State<SupervisorScreen> {
 
   final List<MenuItem> menuItems = [
     MenuItem(
-      icon: Image.asset('assets/images/self-checkout.png', height: 50.h, width: 50.w),
+      icon: Image.asset('assets/images/self.png', height: 50.h, width: 50.w),
       title: 'Self',
     ),
     MenuItem(
-      icon: Image.asset('assets/images/add_meeting.png', height: 50.h, width: 50.w),
+      icon: Image.asset('assets/images/supervisor.png', height: 50.h, width: 50.w),
       title: 'Supervisor',
-    ),
-    MenuItem(
-      icon: Image.asset('assets/images/notification.png', height: 50.h, width: 50.w),
-      title: 'Manage Leaves',
-    ),
-    MenuItem(
-      icon: Image.asset('assets/images/to-do-list.png', height: 50.h, width: 50.w),
-      title: 'LOP',
-    ),
-    MenuItem(
-      icon: Image.asset('assets/images/outdoor.png', height: 50.h, width: 50.w),
-      title: 'Outdoor Duty',
     ),
     MenuItem(
       icon: Image.asset('assets/images/clock_out.png', height: 50.h, width: 50.w),
@@ -53,6 +48,27 @@ class _SupervisorScreenState extends State<SupervisorScreen> {
       icon: Image.asset('assets/images/clock_out.png', height: 50.h, width: 50.w),
       title: 'History', // Was 'SuperV History'
     ),
+    MenuItem(
+      icon: Image.asset('assets/images/device_history.png', height: 50.h, width: 50.w),
+      title: 'De-Register History',
+    ),
+    // MenuItem(
+    //   icon: Image.asset('assets/images/lop.png', height: 50.h, width: 50.w),
+    //   title: 'LOP',
+    // ),
+    // MenuItem(
+    //   icon: Image.asset('assets/images/outdoor.png', height: 50.h, width: 50.w),
+    //   title: 'Outdoor Duty',
+    // ),
+
+    MenuItem(
+      icon: Image.asset('assets/images/ou_checker.png', height: 50.h, width: 50.w),
+      title: 'Ou Checker', // Was 'SuperV History'
+    ),
+    MenuItem(
+      icon: Image.asset('assets/images/transfer_history.png', height: 50.h, width: 50.w),
+      title: 'Transfer History',
+    ),
   ];
 
   @override
@@ -61,6 +77,7 @@ class _SupervisorScreenState extends State<SupervisorScreen> {
     month = DateTime.now().month;
     getEmpHistory();
     super.initState();
+
   }
 
   void _showNullValueError(String errorDetails) {
@@ -131,15 +148,15 @@ class _SupervisorScreenState extends State<SupervisorScreen> {
 
     final selfSectionItems = [
       menuItems[0], // Self
-      menuItems[2], // Manage Leaves
-      menuItems[3], // LOP
-      menuItems[4], // Outdoor Duty
-      menuItems[5], // History (Self)
+      menuItems[4], // Manage Leaves
+      menuItems[5], // LOP
+      menuItems[6], // Transfer history
+      menuItems[2], // History (Self)
     ];
 
     final supervisorSectionItems = [
       menuItems[1], // Supervisor
-      menuItems[6], // History (Supervisor)
+      menuItems[3], // History (Supervisor)
     ];
 
     return Scaffold(
@@ -175,25 +192,30 @@ class _SupervisorScreenState extends State<SupervisorScreen> {
               SizedBox(height: 20.h),
 
               // Section 2: Supervisor
-              Text(
-                "Supervisor",
-                style: TextStyle(fontSize: 22.sp, fontWeight: FontWeight.bold),
-              ),
-              Divider(thickness: 1, color: Colors.grey.shade300),
-              GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 3,
-                  crossAxisSpacing: 16.w,
-                  mainAxisSpacing: 16.h,
-                  childAspectRatio: 1.2,
+              Visibility(visible: hasSuperVisorAccess,
+                child: Text(
+                  "Supervisor",
+                  style: TextStyle(fontSize: 22.sp, fontWeight: FontWeight.bold),
                 ),
-                itemCount: supervisorSectionItems.length,
-                itemBuilder: (context, index) {
-                  final menuItem = supervisorSectionItems[index];
-                  return buildMenuCard(menuItem, bottomNavProvider, context, section: 'Supervisor');
-                },
+              ),
+              Visibility(visible: hasSuperVisorAccess,
+                  child: Divider(thickness: 1, color: Colors.grey.shade300)),
+              Visibility(visible: hasSuperVisorAccess,
+                child: GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 3,
+                    crossAxisSpacing: 16.w,
+                    mainAxisSpacing: 16.h,
+                    childAspectRatio: 1.2,
+                  ),
+                  itemCount: supervisorSectionItems.length,
+                  itemBuilder: (context, index) {
+                    final menuItem = supervisorSectionItems[index];
+                    return buildMenuCard(menuItem, bottomNavProvider, context, section: 'Supervisor');
+                  },
+                ),
               ),
             ],
           ),
@@ -211,7 +233,7 @@ class _SupervisorScreenState extends State<SupervisorScreen> {
               context,
               MaterialPageRoute(
                 builder: (_) => AttendanceHistoryScreen(
-                  empHistoryData: empHistoryData,
+                //  empHistoryData: empHistoryData,
                   currentMonth: DateTime.now().month.toString(),
                   currentYear: DateTime.now().year,
                   month: month,
@@ -224,7 +246,36 @@ class _SupervisorScreenState extends State<SupervisorScreen> {
               MaterialPageRoute(builder: (_) => const EmployeeListScreen(comingFrom: 'superHistory')),
             );
           }
-        } else {
+        }
+        else if (menuItem.title == 'Transfer History') {
+          Navigator.push(context,
+              MaterialPageRoute(builder: (_) => const TransferHistoryScreen()));
+        }
+        else if (menuItem.title == 'De-Register History') {
+          Navigator.push(context,
+              MaterialPageRoute(builder: (_) => const DeregisterHistoryScreen()));
+        }
+        else if(menuItem.title=='LOP')
+        {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const LOPScreen()),
+          );
+        }
+        else if (menuItem.title == 'Ou Checker') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) =>  const OuCheckerScreen()),
+          );
+        }
+        else if(menuItem.title=='Outdoor Duty')
+        {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const OutDoorDutyScreen()),
+          );
+        }
+        else {
           switch (menuItem.title) {
             case 'Supervisor':
               Navigator.push(
@@ -250,12 +301,15 @@ class _SupervisorScreenState extends State<SupervisorScreen> {
           children: [
             menuItem.icon,
             SizedBox(height: 8.h),
-            Text(
-              menuItem.title,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14.sp,
-                fontWeight: FontWeight.bold,
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                menuItem.title,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ],

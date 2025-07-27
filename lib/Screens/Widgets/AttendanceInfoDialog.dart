@@ -82,8 +82,8 @@ class _InfoDialogState extends State<InfoDialog> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
-    print("date time");
-    print(DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now()));
+    debugPrint("date time");
+    debugPrint(DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now()));
     getUserFaceData();
     _getCurrentLocation().then((_) {
       getDistanceData();
@@ -142,7 +142,7 @@ class _InfoDialogState extends State<InfoDialog> with WidgetsBindingObserver {
     await getAttendanceInTime();
 
     String userInTime = inTime;
-    print("UserInTime"+userInTime);
+    debugPrint("UserInTime"+userInTime);
 
 
         showDialog(
@@ -163,8 +163,8 @@ class _InfoDialogState extends State<InfoDialog> with WidgetsBindingObserver {
       "inEmpPic": base64Image,
     };
 
-    print("Sending User Data to API:");
-    userData.forEach((key, value) => print('$key: $value'));
+    debugPrint("Sending User Data to API:");
+    userData.forEach((key, value) => debugPrint('$key: $value'));
 
     // try {
     //   // Make the API call using the custom API helper (postAPICall method)
@@ -308,7 +308,7 @@ class _InfoDialogState extends State<InfoDialog> with WidgetsBindingObserver {
         String status = responseData['status'].toString();
         String distance = responseData['distance'].toString();
 
-        print("API Response: $responseData");
+        debugPrint("API Response: $responseData");
 
         if (status == 'TRUE') {
           // Process the response if status is 'TRUE'

@@ -37,22 +37,38 @@ class EmpHistoryData {
   String? locationFlag;
   String? outLocAddInfo;
   String? attCaptureByGuid;
+  String? inAttnColor;     // ← NEW
+  String? outAttnColor;    // ← NEW
 
-  EmpHistoryData({this.inTime, this.outTime,this.inLatAdd, this.inLonAdd, this.outLatAdd,
-    this.outLonAdd, this.inLocAddInfo, this.locationFlag, this.outLocAddInfo, this.attCaptureByGuid});
+  EmpHistoryData({
+    this.inTime,
+    this.outTime,
+    this.inLatAdd,
+    this.inLonAdd,
+    this.outLatAdd,
+    this.outLonAdd,
+    this.inLocAddInfo,
+    this.locationFlag,
+    this.outLocAddInfo,
+    this.attCaptureByGuid,
+    this.inAttnColor,      // ← NEW
+    this.outAttnColor,     // ← NEW
+  });
 
   factory EmpHistoryData.fromJson(Map<String, dynamic> json) {
     return EmpHistoryData(
       inTime: json['inTime'],
       outTime: json['outTime'],
-      inLatAdd: json['inLatAdd'].toString(),
-      inLonAdd: json['inLonAdd'].toString(),
-      outLatAdd: json['outLatAdd'].toString(),
-      outLonAdd: json['outLonAdd'].toString(),
-      inLocAddInfo: json['inLocAddInfo'].toString(),
-      locationFlag: json['locationFlag'].toString(),
+      inLatAdd: json['inLatAdd']?.toString(),
+      inLonAdd: json['inLonAdd']?.toString(),
+      outLatAdd: json['outLatAdd']?.toString(),
+      outLonAdd: json['outLonAdd']?.toString(),
+      inLocAddInfo: json['inLocAddInfo']?.toString(),
+      locationFlag: json['locationFlag']?.toString(),
       outLocAddInfo: json['outLocAddInfo'],
       attCaptureByGuid: json['attCaptureByGuid'],
+      inAttnColor: json['inAttnColor'],      // ← NEW
+      outAttnColor: json['outAttnColor'],    // ← NEW
     );
   }
 
@@ -67,6 +83,9 @@ class EmpHistoryData {
     'locationFlag': locationFlag,
     'outLocAddInfo': outLocAddInfo,
     'attCaptureByGuid': attCaptureByGuid,
+    'inAttnColor': inAttnColor,       // ← NEW
+    'outAttnColor': outAttnColor,     // ← NEW
   };
 }
+
 

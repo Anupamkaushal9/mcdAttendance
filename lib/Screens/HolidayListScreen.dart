@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_exit_app/flutter_exit_app.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:lottie/lottie.dart';
+import 'package:mcd_attendance/Helpers/Constant.dart';
 import 'package:mcd_attendance/Model/HolidayDataModel.dart';
 import 'package:http/http.dart' as http;
 
@@ -45,7 +46,7 @@ class _HolidayListScreenState extends State<HolidayListScreen> {
       isLoading = true;
     });
 
-    const String url = 'https://api.mcd.gov.in/app/request';
+    const String url = newBaseUrl;
     const String token = 'eyJhbGciOiJIUzI1NiJ9.e30.g2PzdcLXSunm0_ZW-5d9ptZSpeXZi0qsh_sTuTTojRs';
 
     var headers = {
@@ -130,7 +131,7 @@ class _HolidayListScreenState extends State<HolidayListScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       extendBodyBehindAppBar: true,
-      appBar: const GlassAppBar(title: 'MCD SMART', isLayoutScreen: false),
+      appBar: const GlassAppBar(title: 'MCD PRO', isLayoutScreen: false),
       body: (!isLoading)?ListView.builder(
         itemCount: holidays.length,
         itemBuilder: (context, index) {

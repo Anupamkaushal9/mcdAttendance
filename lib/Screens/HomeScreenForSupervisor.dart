@@ -17,6 +17,7 @@ import 'package:mcd_attendance/Screens/InAttendanceScreenForSupervisor.dart';
 import 'package:mcd_attendance/Utils/fake_location_util.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../Helpers/ApiBaseHelper.dart';
+import '../Helpers/Constant.dart';
 import '../Helpers/String.dart';
 import '../Model/EmployeeHistoryModel.dart';
 import '../Model/OrganizationDataModel.dart';
@@ -82,6 +83,9 @@ class _HomeScreenState extends State<HomeSupervisorScreen>
   DateTime? _cachedOutTime;
   String? _cachedClockInFormatted;
   String? _cachedDayVal;
+  bool isContainFaceData = false;
+  bool hasDataOne = false;
+  bool hasDataTwo = false;
 
   @override
   void initState() {
@@ -134,7 +138,7 @@ class _HomeScreenState extends State<HomeSupervisorScreen>
 
     try {
       var getData = await apiBaseHelper.postAPICall(
-        Uri.parse('http://14.194.153.5/prod/api/attendance_testing/emp-face-data'),
+        Uri.parse('${baseUrl}emp-face-data'),
         parameter,
       );
 
@@ -156,7 +160,7 @@ class _HomeScreenState extends State<HomeSupervisorScreen>
         print('Super user Image Path: $efmPath');
 
       } else {
-        _showNullValueError("getEmpFaceData Api Error: $errorMsg $status");
+       // _showNullValueError("getEmpFaceData Api Error: $errorMsg $status");
       }
     } catch (e) {
       _showNullValueError("getEmpFaceData Api Error: ${e.toString()}");
@@ -433,6 +437,9 @@ class _HomeScreenState extends State<HomeSupervisorScreen>
       if (status == 'TRUE') {
         final inTime = getData['in_time']?.toString() ?? '';
         final outTime = getData['out_time']?.toString() ?? '';
+        isContainFaceData = getData['has_face_data'];
+        hasDataOne = getData['has_data_01'] ?? false;
+        hasDataTwo = getData['has_data_02'] ?? false;
         final now = DateTime.now();
 
         if (inTime.isNotEmpty && outTime.isNotEmpty) {
@@ -570,7 +577,7 @@ class _HomeScreenState extends State<HomeSupervisorScreen>
     return Scaffold(
       backgroundColor: Colors.white,
       extendBodyBehindAppBar: true,
-      appBar: const GlassAppBar(title: 'MCD SMART', isLayoutScreen: false),
+      appBar: const GlassAppBar(title: 'MCD PRO', isLayoutScreen: false),
       body: isLoading
           ? Center(
         child: Lottie.asset(
@@ -584,11 +591,31 @@ class _HomeScreenState extends State<HomeSupervisorScreen>
             child: ListView(
                     padding: const EdgeInsets.all(5),
                     children: [
+                      SizedBox(height: 20.h),
+                      Center(
+                        child: Text(
+                          resultDate,
+                          style: TextStyle(
+                            fontSize: 25.sp,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: 30.h),
             SizedBox(
-              height: height / 7,
               child: Column(
                 children: [
-                  SizedBox(height: 20.h),
+                  Center(
+                    child: Text(
+                      "Working Hours",
+                      style: TextStyle(
+                        fontSize: 15.sp,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.blue,
+                      ),
+                    ),
+                  ),
                   Center(
                     child: Text(
                       workingHrValue,
@@ -602,17 +629,7 @@ class _HomeScreenState extends State<HomeSupervisorScreen>
                 ],
               ),
             ),
-            Center(
-              child: Text(
-                resultDate,
-                style: TextStyle(
-                  fontSize: 25.sp,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.grey,
-                ),
-              ),
-            ),
-            SizedBox(height: 30.h),
+            SizedBox(height: 30.h,),
             SizedBox(
               height: height / 6.5,
               child: Row(
@@ -670,7 +687,10 @@ class _HomeScreenState extends State<HomeSupervisorScreen>
       height: height / 4,
       child: GestureDetector(
         onTap: () {
-          checkForMockLocation(context);
+          // Skip mock location check for iOS
+          if (!Platform.isIOS) {
+            checkForMockLocation(context);
+          }
           // Navigator.push(
           //   context,
           //   MaterialPageRoute(
@@ -681,12 +701,21 @@ class _HomeScreenState extends State<HomeSupervisorScreen>
           //     ),
           //   ),
           // );
-          Navigator.push(
+          (isContainFaceData&&hasDataOne&&hasDataTwo)?Navigator.push(
             context,
             MaterialPageRoute(
               builder: (_) => InAttendanceForSupervisorScreen(
                 guid:widget.guid,
-                empHistoryData: widget.empHistoryData,
+                //empHistoryData: widget.empHistoryData,
+              ),
+            ),
+          ):Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => InAttendanceNewUiForSupervisorScreen(
+                //empHistoryData: widget.empHistoryData,
+                      bmid: widget.bmid,
+                      guid: widget.guid, employeeInfoList: widget.employeeInfoList??[],
               ),
             ),
           );

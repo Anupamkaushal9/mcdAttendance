@@ -5,16 +5,16 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_exit_app/flutter_exit_app.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart'; // For responsive design
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
+import 'package:mcd_attendance/Helpers/Constant.dart';
 import 'package:mcd_attendance/Screens/NewAvailableMeetingScreen.dart';
 import 'package:mcd_attendance/Screens/Widgets/GlassAppbar.dart';
 import '../Helpers/ApiBaseHelper.dart';
 import '../Helpers/NotificationService.dart';
 import '../Helpers/String.dart';
 import 'package:timezone/timezone.dart' as tz;
-
 import 'Widgets/DialogBox.dart';
 
 class AddMeetingFormScreen extends StatefulWidget {
@@ -35,8 +35,6 @@ class _AddMeetingFormScreenState extends State<AddMeetingFormScreen> {
   final meetingDateController = TextEditingController();
   final meetingTimeController = TextEditingController();
   final notesController = TextEditingController();
-
-  // final DatabaseHelper _dbHelper = DatabaseHelper();
 
   @override
   void initState() {
@@ -61,7 +59,7 @@ class _AddMeetingFormScreenState extends State<AddMeetingFormScreen> {
         builder: (BuildContext context) {
           return NoInternetDialog(
             onRetry: () {
-              (Platform.isAndroid)?FlutterExitApp.exitApp():FlutterExitApp.exitApp(iosForceExit: true);
+              (Platform.isAndroid) ? FlutterExitApp.exitApp() : FlutterExitApp.exitApp(iosForceExit: true);
             },
           );
         },
@@ -75,85 +73,78 @@ class _AddMeetingFormScreenState extends State<AddMeetingFormScreen> {
       isLoading = true;
     });
 
-    // API URL
-    const url = 'https://api.mcd.gov.in/app/request';
+    const url = newBaseUrl;
+    const String token = 'eyJhbGciOiJIUzI1NiJ9.e30.g2PzdcLXSunm0_ZW-5d9ptZSpeXZi0qsh_sTuTTojRs';
 
-    // Request body data
     final Map<String, dynamic> requestBody = {
       "module": "meeting",
       "event": "add",
       "params": {
         "meeting_title": meetingNameController.text,
         "meeting_date": meetingDateController.text,
-        "meeting_time": meetingTimeController.text, // Use the correct time as per your requirement
+        "meeting_time": meetingTimeController.text,
         "meeting_description": notesController.text,
         "emp_bmid": userBmid
       }
     };
 
-    // Authorization token (JWT)
-    const String token = 'eyJhbGciOiJIUzI1NiJ9.e30.g2PzdcLXSunm0_ZW-5d9ptZSpeXZi0qsh_sTuTTojRs';
-
-    // Create headers
-    var headers = {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer $token', // Attach Bearer token
-    };
-
-    // Debugging: Print headers to verify token inclusion
-    print('Headers: $headers');
-
-    // Create HTTP request
-    var request = http.Request('POST', Uri.parse(url));
-
-    // Set the body of the request
-    request.body = json.encode(requestBody);
-
-    // Add headers to the request
-    request.headers.addAll(headers);
-
     try {
-      // Send the request
-      http.StreamedResponse response = await request.send();
+      var response = await http.post(
+        Uri.parse(url),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: json.encode(requestBody),
+      );
 
-      // Check if the response was successful
       if (response.statusCode == 200) {
-        // Get the response body as a string
-        String responseBody = await response.stream.bytesToString();
-        final Map<String, dynamic> responseData = json.decode(responseBody);
+        final responseData = json.decode(response.body);
+        debugPrint('Success Response: ${responseData.toString()}');
 
-        // Print response message (success case)
-        print('Success Response: ${responseData.toString()}');
+        // Schedule notifications
+        DateTime meetingDate = DateFormat('yyyy-MM-dd').parse(meetingDateController.text);
+        List<String> timeParts = meetingTimeController.text.split(':');
+        DateTime meetingDateTime = DateTime(
+          meetingDate.year,
+          meetingDate.month,
+          meetingDate.day,
+          int.parse(timeParts[0]),
+          int.parse(timeParts[1]),
+        );
+
+        tz.TZDateTime scheduledDateTime30min = tz.TZDateTime.from(
+            meetingDateTime.subtract(const Duration(minutes: 30)),
+            tz.local
+        );
+        tz.TZDateTime scheduledDateTime10min = tz.TZDateTime.from(
+            meetingDateTime.subtract(const Duration(minutes: 10)),
+            tz.local
+        );
+
+        NotificationService.scheduleNotification(
+            DateTime.now().millisecondsSinceEpoch % 100000000,
+            'Meeting Reminder',
+            'Your meeting "${meetingNameController.text}" will start in 30 minutes.',
+            scheduledDateTime30min,
+            meetingNameController.text
+        );
+
+        NotificationService.scheduleNotification(
+            (DateTime.now().millisecondsSinceEpoch % 100000000) + 1,
+            'Meeting Reminder',
+            'Your meeting "${meetingNameController.text}" will start in 10 minutes.',
+            scheduledDateTime10min,
+            meetingNameController.text
+        );
         Navigator.of(context).pop();
-        setState(() {
-          isLoading = false;
-        });
-
-        // Show Success Dialog
         _showDialog(context, 'Meeting Added!', 'Your meeting has been scheduled.', Colors.green);
       } else {
-        // If the response code is not 200, print the error response
-        String errorResponse = await response.stream.bytesToString();
-
-        // Print response message (failure case)
-        print('Failed Response: $errorResponse');
-
-        setState(() {
-          isLoading = false;
-        });
-
-        // Show Failure Dialog
-        _showDialog(context, 'Failed to Add Meeting', errorResponse, Colors.red);
+        debugPrint('Failed Response: ${response.body}');
+        _showDialog(context, 'Failed to Add Meeting', response.body, Colors.red);
       }
     } catch (e) {
-      // Print error message (network or other issues)
-      print('Error: $e');
-
-      setState(() {
-        isLoading = false;
-      });
-
-      // Show Failure Dialog
+      debugPrint('Error: $e');
       _showDialog(context, 'Error', e.toString(), Colors.red);
     } finally {
       setState(() {
@@ -161,8 +152,6 @@ class _AddMeetingFormScreenState extends State<AddMeetingFormScreen> {
       });
     }
   }
-
-
 
   void _showDialog(BuildContext context, String title, String message, Color color) {
     showDialog(
@@ -183,12 +172,13 @@ class _AddMeetingFormScreenState extends State<AddMeetingFormScreen> {
                 color: color,
                 size: 50,
               ),
-               SizedBox(height: 10.h),
+              SizedBox(height: 10.h),
               Text(message, textAlign: TextAlign.center),
             ],
           ),
           actions: <Widget>[
-            SizedBox(width: double.infinity,
+            SizedBox(
+              width: double.infinity,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xff111184),
@@ -200,7 +190,7 @@ class _AddMeetingFormScreenState extends State<AddMeetingFormScreen> {
                   Navigator.of(context).pop();
                   widget.onFormSubmit(context);
                 },
-                child:  Text(
+                child: Text(
                   "Okay",
                   style: TextStyle(fontSize: 16.sp, color: Colors.white),
                 ),
@@ -210,116 +200,138 @@ class _AddMeetingFormScreenState extends State<AddMeetingFormScreen> {
         );
       },
     );
-
   }
 
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: DateTime.now(), // Default to today's date
-      firstDate: DateTime.now(), // First date that can be selected is tomorrow
-      lastDate: DateTime(2101), // You can adjust the last date to be further in the future if needed
+      initialDate: DateTime.now(),
+      firstDate: DateTime.now(),
+      lastDate: DateTime(2101),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xff111184),
+              onPrimary: Colors.white,
+              onSurface: Colors.black,
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor: const Color(0xff111184),
+              ),
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
 
-    if (picked != null && picked != DateTime.now()) {
+    if (picked != null) {
       setState(() {
-        meetingDateController.text = '${picked.toLocal()}'
-            .split(' ')[0]; // Display only the date in yyyy-MM-dd format
+        meetingDateController.text = DateFormat('yyyy-MM-dd').format(picked);
       });
+      // No longer automatically opens time picker
     }
   }
 
   Future<void> _selectTime(BuildContext context) async {
-    // Get the current time
-    final currentTime = TimeOfDay.now();
+    if (meetingDateController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please select a date first')));
+      return;
+    }
 
-    // Get the current DateTime for comparison (today's date)
+    final selectedDate = DateFormat('yyyy-MM-dd').parse(meetingDateController.text);
+    final currentTime = TimeOfDay.now();
     final now = DateTime.now();
 
-    // Set the next available time (1 hour from the current time)
-    final nextAvailableTime = TimeOfDay(
-      hour: currentTime.hour + 1,
-      minute: currentTime.minute,
-    );
-
-    // Show the time picker with the next available time as the initial time
     final TimeOfDay? picked = await showTimePicker(
       context: context,
-      initialTime: nextAvailableTime, // Default to one hour ahead
+      initialTime: TimeOfDay(
+        hour: currentTime.hour + 1,
+        minute: currentTime.minute,
+      ),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xff111184),
+              onPrimary: Colors.white,
+              onSurface: Colors.black,
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
 
     if (picked != null) {
-      int hour = picked.hour;
-      int minute = picked.minute;
+      final selectedDateTime = DateTime(
+        selectedDate.year,
+        selectedDate.month,
+        selectedDate.day,
+        picked.hour,
+        picked.minute,
+      );
 
-      // Create DateTime for the selected time
-      final selectedTime = DateTime(now.year, now.month, now.day, hour, minute);
-
-      // If the selected time is in the past for today, show a warning
-      if (selectedTime.isBefore(now)) {
-        // Show a dialog or a Snackbar to inform the user
-        showDialog(
-          context: context,
-          builder: (_) => AlertDialog(
-            title: const Center(child: Text('Invalid Time')),
-            content: const Text(
-                'You cannot select a time in the past for today. Please select a future time.'),
-            actions: [
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xff111184),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+      // Only validate time if the selected date is today
+      if (selectedDate.year == now.year &&
+          selectedDate.month == now.month &&
+          selectedDate.day == now.day) {
+        if (selectedDateTime.isBefore(now)) {
+          showDialog(
+            context: context,
+            builder: (_) => AlertDialog(
+              title: const Center(child: Text('Invalid Time')),
+              content: const Text(
+                  'For today, you cannot select a time in the past. Please select a future time.'),
+              actions: [
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xff111184),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    onPressed: () => Navigator.pop(context),
+                    child: Text(
+                      "Ok",
+                      style: TextStyle(fontSize: 16.sp, color: Colors.white),
                     ),
                   ),
-                  onPressed: () {
-                    Navigator.pop(context);
-                  },
-                  child:  Text(
-                    "Ok",
-                    style: TextStyle(fontSize: 16.sp, color: Colors.white),
-                  ),
                 ),
-              )
-            ],
-          ),
-        );
-        return; // Exit the function to prevent updating the time
+              ],
+            ),
+          );
+          return;
+        }
       }
 
-      // Format the hour and minute in "HH:mm" format (24-hour format)
-      String formattedTime = "${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}";
-
-      // Update the controller with the formatted time
-      meetingTimeController.text = formattedTime;
-
-      // Print the formatted time for debugging
-      print("Formatted Time: $formattedTime");
+      String formattedTime = "${picked.hour.toString().padLeft(2, '0')}:"
+          "${picked.minute.toString().padLeft(2, '0')}";
+      setState(() {
+        meetingTimeController.text = formattedTime;
+      });
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
-    double height = MediaQuery.of(context).size.height;
-
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: const GlassAppBar(title: 'MCD SMART', isLayoutScreen: false),
+      appBar: const GlassAppBar(title: 'MCD PRO', isLayoutScreen: false),
       body: SingleChildScrollView(
-        padding: EdgeInsets.all(16.0.sp), // Spacing using ScreenUtil
+        padding: EdgeInsets.all(16.0.sp),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-
-            // Form Fields
             Form(
               key: _formKey,
               child: Column(
                 children: [
-                  // Meeting Name Field
                   TextFormField(
                     controller: meetingNameController,
                     decoration: InputDecoration(
@@ -339,10 +351,8 @@ class _AddMeetingFormScreenState extends State<AddMeetingFormScreen> {
                     },
                   ),
                   SizedBox(height: 16.h),
-
                   Row(
                     children: [
-                      // Deadline Date
                       Expanded(
                         child: TextFormField(
                           controller: meetingDateController,
@@ -364,7 +374,6 @@ class _AddMeetingFormScreenState extends State<AddMeetingFormScreen> {
                         ),
                       ),
                       SizedBox(width: 16.w),
-                      // Deadline Time
                       Expanded(
                         child: TextFormField(
                           controller: meetingTimeController,
@@ -382,19 +391,15 @@ class _AddMeetingFormScreenState extends State<AddMeetingFormScreen> {
                             }
                             return null;
                           },
-                          onTap: () {
-                            _selectTime(context);
-                          },
+                          onTap: () => _selectTime(context),
                         ),
                       ),
                     ],
                   ),
                   SizedBox(height: 16.h),
-
-                  // Notes Field
                   TextFormField(
                     controller: notesController,
-                    maxLines: 5, // Allow multiple lines for notes
+                    maxLines: 5,
                     decoration: InputDecoration(
                       labelText: 'Notes',
                       hintText: 'Enter additional notes',
@@ -413,54 +418,14 @@ class _AddMeetingFormScreenState extends State<AddMeetingFormScreen> {
                     },
                   ),
                   SizedBox(height: 20.h),
-
-                  // Add Button
                   Container(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: (){
-                        if(_formKey.currentState!.validate())
-                          {
-                            addMeeting(context);
-                            // Parse meeting date and time and combine them
-                            DateTime meetingDate = DateFormat('yyyy-MM-dd').parse(meetingDateController.text);
-                            List<String> timeParts = meetingTimeController.text.split(':');
-                            int hour = int.parse(timeParts[0]);
-                            int minute = int.parse(timeParts[1]);
-
-                            // Combine the meeting date with the time to get a full DateTime object
-                            DateTime meetingDateTime = DateTime(
-                              meetingDate.year,
-                              meetingDate.month,
-                              meetingDate.day,
-                              hour,
-                              minute,
-                            );
-                            // Calculate the notification times
-                            DateTime notificationDateTime30min = meetingDateTime.subtract(const Duration(minutes: 30));
-                            DateTime notificationDateTime10min = meetingDateTime.subtract(const Duration(minutes: 10));
-
-                            // Convert to TZDateTime (local timezone)
-                            tz.TZDateTime scheduledDateTime30min = tz.TZDateTime.from(notificationDateTime30min, tz.local);
-                            tz.TZDateTime scheduledDateTime10min = tz.TZDateTime.from(notificationDateTime10min, tz.local);
-
-                             // Schedule the first notification (30 minutes before the meeting)
-                            NotificationService.scheduleNotification(
-                               DateTime.now().millisecondsSinceEpoch% 100000000,
-                              'Meeting Reminder',
-                              'Your meeting "${meetingNameController.text}" will start in 30 minutes.',
-                              scheduledDateTime30min,meetingNameController.text
-                            );
-
-                            // Schedule the second notification (10 minutes before the meeting)
-                            NotificationService.scheduleNotification(
-                              DateTime.now().millisecondsSinceEpoch% 100000000,
-                              'Meeting Reminder',
-                              'Your meeting "${meetingNameController.text}" will start in 10 minutes.',
-                              scheduledDateTime10min,meetingNameController.text
-                            );
-                          }
-                        },
+                      onPressed: () {
+                        if (_formKey.currentState!.validate()) {
+                          addMeeting(context);
+                        }
+                      },
                       style: ElevatedButton.styleFrom(
                         padding: EdgeInsets.symmetric(vertical: 15.h),
                         shape: RoundedRectangleBorder(
@@ -469,7 +434,7 @@ class _AddMeetingFormScreenState extends State<AddMeetingFormScreen> {
                         backgroundColor: const Color(0xff111184),
                       ),
                       child: (isLoading)
-                          ?  Center(
+                          ? Center(
                         child: SizedBox(
                           height: 20.h,
                           width: 20.w,

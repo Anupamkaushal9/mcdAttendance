@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_exit_app/flutter_exit_app.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:lottie/lottie.dart';
+import 'package:mcd_attendance/Helpers/Constant.dart';
 import 'package:mcd_attendance/Helpers/NotificationService.dart';
 import 'package:mcd_attendance/Helpers/String.dart';
 import 'package:mcd_attendance/Model/MeetingModel.dart';
@@ -127,7 +128,7 @@ class _AvailableMeetingScreenState extends State<AvailableMeetingScreen> {
       });
     }
 
-    const String url = 'https://api.mcd.gov.in/app/request';
+    const String url = newBaseUrl;
     const String token = 'eyJhbGciOiJIUzI1NiJ9.e30.rIxFKYxozQ7lXw7UNW_3CBS7YK-pfGkjkUmjIH0o8Ag';
 
     var headers = {
@@ -192,7 +193,7 @@ class _AvailableMeetingScreenState extends State<AvailableMeetingScreen> {
       // ❗️ Show dialog for exceptions
       _showNullValueError("fetchMeetings Api: $e");
 
-      print(errorText);
+      debugPrint(errorText);
     } finally {
       if (mounted) {
         setState(() {
@@ -204,7 +205,7 @@ class _AvailableMeetingScreenState extends State<AvailableMeetingScreen> {
 
 
   Future<void> deleteMeeting(BuildContext context, String empBmid, String meetingId) async {
-    const String url = 'https://api.mcd.gov.in/app/request';
+    const String url = newBaseUrl;
 
     // Prepare the data to be sent in the body
     var body = json.encode({

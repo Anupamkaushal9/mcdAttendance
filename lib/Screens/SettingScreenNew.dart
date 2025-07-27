@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -9,6 +10,7 @@ import 'package:mcd_attendance/Model/Employee.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../Helpers/ApiBaseHelper.dart';
+import '../Helpers/Constant.dart';
 import '../Helpers/String.dart';
 import 'UserProfileScreen.dart';
 import 'Widgets/DialogBox.dart';
@@ -49,6 +51,39 @@ class _SettingsScreenNewState extends State<SettingsScreenNew> {
                  SizedBox(height: 16.h),
                  Text(
                   'Please wait...while de-registering',
+                  style: TextStyle(fontSize: 16.sp),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showRefreshDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false, // Prevent user from closing the dialog
+      builder: (BuildContext context) {
+        return WillPopScope(
+          onWillPop: () async => false,
+          child: AlertDialog(
+            contentPadding: const EdgeInsets.all(20),
+            shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                LottieBuilder.asset(
+                  'assets/animations/loading_animation.json', // Provide the correct asset path
+                  width: 50.w,
+                  height: 50.h,
+                  repeat: true,
+                ),
+                SizedBox(height: 16.h),
+                Text(
+                  'Refreshing...',
                   style: TextStyle(fontSize: 16.sp),
                 ),
               ],
@@ -143,6 +178,106 @@ class _SettingsScreenNewState extends State<SettingsScreenNew> {
     );
   }
 
+  saveUserFaceData(String userFaceData) async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setString('user_face_data', userFaceData);
+  }
+
+  Future<void> getEmpFaceData() async {
+    _showRefreshDialog(context);
+
+    if (!mounted) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    await Future.delayed(const Duration(seconds: 1));
+
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+
+    final Map<String, dynamic> parameter = {
+      "bmid": userBmid,
+    };
+
+    try {
+      final Uri url = Uri.parse('${baseUrl}emp-face-data');
+      final Map<String, dynamic> getData = await apiBaseHelper.postAPICall(url, parameter);
+
+      debugPrint("API Response (getEmpFaceData): $getData");
+
+      final String status = getData['status']?.toString() ?? 'FALSE';
+      final String error = getData['error']?.toString() ?? 'Unknown error';
+
+      if (status == 'TRUE') {
+        final data = getData['msg'];
+        final String efmImg = data['efm_img'] ?? '';
+        final String efmPath = data['efm_path'] ?? '';
+        final String remarks = data['efm_remarks'] ?? 'No remarks';
+
+        if (efmImg.isNotEmpty) {
+          await prefs.setString('user_face_data', efmImg);
+
+          debugPrint('Base64 Image Saved: $efmImg');
+          debugPrint('Image Path: $efmPath');
+
+          String? base64Image = prefs.getString('user_face_data');
+
+          if (base64Image != null && base64Image.isNotEmpty) {
+            const String prefix = 'data:image/jpeg;base64,';
+
+            if (base64Image.startsWith(prefix)) {
+              base64Image = base64Image.replaceFirst(prefix, '');
+            }
+
+            try {
+              final Uint8List decodedImage = base64Decode(base64Image);
+              if (decodedImage.isNotEmpty) {
+                userPhoto = decodedImage;
+                if (mounted) Navigator.pop(context);
+              } else {
+                if (mounted) Navigator.pop(context);
+                _showNullValueError("Decoded image is empty.");
+                userPhoto = null;
+              }
+            } catch (e) {
+              if (mounted) Navigator.pop(context);
+              _showNullValueError("Failed to decode image data: ${e.toString()}");
+              userPhoto = null;
+            }
+          } else {
+            if (mounted) Navigator.pop(context);
+            _showNullValueError("No face data found in local storage.");
+            userPhoto = null;
+          }
+        } else {
+          if (mounted) Navigator.pop(context);
+          _showNoFaceFound("No face data found on server!");
+          userPhoto = null;
+        }
+      } else {
+        if (mounted) Navigator.pop(context);
+        _showNoFaceFound(error);
+        userPhoto = null;
+      }
+    } catch (e) {
+      if (mounted) Navigator.pop(context);
+      _showNullValueError('getEmpFaceData (exception): ${e.toString()}');
+      userPhoto = null;
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+
+        // ✅ Show "Refresh Complete" Dialog here
+        _showRefreshCompleteDialog(context);
+      }
+    }
+  }
+
+
+
   void _showNullValueError(String errorDetails) {
     if (mounted) {
       showDialog(
@@ -155,6 +290,111 @@ class _SettingsScreenNewState extends State<SettingsScreenNew> {
       );
     }
   }
+
+  void _showRefreshCompleteDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (_) => WillPopScope(
+        onWillPop: () async => false,
+        child: AlertDialog(
+          contentPadding: const EdgeInsets.all(20),
+          shape:
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Refresh Done',
+                style: TextStyle(fontSize: 20.sp,fontWeight: FontWeight.bold,color:Colors.blueAccent),
+              ),
+              const SizedBox(height:10),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xff111184),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 7),
+                  ),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  child: const Text(
+                    'Okay',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      )
+    );
+  }
+
+  void _showNoFaceFound(String errorDetails) {
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+               Center(
+                 child: Text(
+                  errorDetails=='No enrollment data found.'?'No face enrollment data found':errorDetails,
+                  style: TextStyle(
+                    color: Colors.redAccent,
+                    fontSize: 18.sp,
+                    fontWeight: FontWeight.bold,
+                  ),
+                               ),
+               ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xff111184),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  child: const Text(
+                    'Okay',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+
+
 
   void _showDeRegisterDoneDialog() {
     if (mounted) {
@@ -192,7 +432,7 @@ class _SettingsScreenNewState extends State<SettingsScreenNew> {
       final String error = getData['error']?.toString() ?? '';
       final String status = getData['status']?.toString() ?? '';
 
-      print("API Response: $getData");
+      debugPrint("API Response: $getData");
 
       if (mounted) {
         Navigator.of(context).pop(); // Close loading dialog
@@ -274,6 +514,9 @@ class _SettingsScreenNewState extends State<SettingsScreenNew> {
                 elevation: 5,
                 child: Column(
                   children: [
+                    _buildSettingItem(context, 'Refresh Data',
+                        Icons.refresh),
+                    _buildDivider(),
                     _buildSettingItem(context, 'De-Register your device',
                         Icons.device_unknown),
                     _buildDivider(),
@@ -332,6 +575,9 @@ class _SettingsScreenNewState extends State<SettingsScreenNew> {
             ),
           );
         }
+        if (title == 'Refresh Data') {
+          getEmpFaceData();
+        }
         if (title == 'Log out') {
           showDialog(
             barrierDismissible: true,
@@ -369,7 +615,7 @@ class _SettingsScreenNewState extends State<SettingsScreenNew> {
                   Text(
                     appVersionFromDevice,
                     style:  TextStyle(
-                      fontSize: 14.sp,
+                      fontSize: 18.sp,
                       color: Colors.black,
                     ),
                   ),

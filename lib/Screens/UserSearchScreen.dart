@@ -11,6 +11,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../Helpers/ApiBaseHelper.dart';
 import '../Helpers/AppBtn.dart';
+import '../Helpers/Constant.dart';
 import '../Helpers/Session.dart';
 import '../Helpers/String.dart';
 import '../Model/Employee.dart';
@@ -84,7 +85,7 @@ class _UserSearchScreenState extends State<UserSearchScreen>
       String error = getData['error'].toString();
       String? status = getData['status'].toString();
 
-      print("API Response (searchEmpByBmid): $getData");
+      debugPrint("API Response (searchEmpByBmid): $getData");
 
       if (status == 'TRUE') {
         var data = getData['employeeXML'];
@@ -105,10 +106,9 @@ class _UserSearchScreenState extends State<UserSearchScreen>
             isUserFound = false;
             isButtonTapped = true;
           });
-          if(!error.contains('does not exist'))
-            {
-          _showNullValueError('searchEmpByBmid: $error $status');
-            }
+          if (!error.contains('does not exist')) {
+            _showNullValueError('searchEmpByBmid: $error $status');
+          }
         }
       }
     }, onError: (e) {
@@ -123,7 +123,6 @@ class _UserSearchScreenState extends State<UserSearchScreen>
       }
     });
   }
-
 
   saveUserFaceData(String userFaceData) async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -142,7 +141,7 @@ class _UserSearchScreenState extends State<UserSearchScreen>
         getJsonString = prefs.getString('employeeData')!;
       });
     }
-    print('employeeData>>>> = $getJsonString');
+    debugPrint('employeeData>>>> = $getJsonString');
   }
 
   Future<void> getEmpFaceData() async {
@@ -160,14 +159,14 @@ class _UserSearchScreenState extends State<UserSearchScreen>
 
     await apiBaseHelper
         .postAPICall(
-      Uri.parse('http://14.194.153.5/prod/api/attendance_testing/emp-face-data'),
+      Uri.parse('${baseUrl}emp-face-data'),
       parameter,
     )
         .then((getData) {
       String error = getData['error'].toString();
       String? msg = getData['status'].toString();
 
-      print("API Response (getEmpFaceData): $getData");
+      debugPrint("API Response (getEmpFaceData): $getData");
 
       if (msg == 'TRUE') {
         var data = getData['msg'];
@@ -210,23 +209,26 @@ class _UserSearchScreenState extends State<UserSearchScreen>
           Navigator.of(context).pop();
           Navigator.of(context).pushAndRemoveUntil(
             MaterialPageRoute(
-              builder: (context) => LayoutScreen(bmid: userBmid, empData: empData),
+              builder: (context) =>
+                  LayoutScreen(bmid: userBmid, empData: empData),
             ),
-                (Route<dynamic> route) => false,
+            (Route<dynamic> route) => false,
           );
         });
 
-        print('Base64 Image: $efmImg');
-        print('Image Path: $efmPath');
+        debugPrint('Base64 Image: $efmImg');
+        debugPrint('Image Path: $efmPath');
       } else {
-        String errorMsg = getData['error'] ?? 'An error occurred while fetching face data.';
+        String errorMsg =
+            getData['error'] ?? 'An error occurred while fetching face data.';
 
         if (errorMsg == 'No enrollment data found.') {
           Navigator.of(context).pushAndRemoveUntil(
             MaterialPageRoute(
-              builder: (context) => LayoutScreen(bmid: userBmid, empData: empData),
+              builder: (context) =>
+                  LayoutScreen(bmid: userBmid, empData: empData),
             ),
-                (Route<dynamic> route) => false,
+            (Route<dynamic> route) => false,
           );
         } else {
           _showNullValueError('getEmpFaceData: $errorMsg $msg');
@@ -245,7 +247,6 @@ class _UserSearchScreenState extends State<UserSearchScreen>
     });
   }
 
-
   Future<void> _setBmidSharedPrefrence() async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setString('user_bmid', userBmid!);
@@ -256,8 +257,8 @@ class _UserSearchScreenState extends State<UserSearchScreen>
         userBmid = prefs.getString('user_bmid')!;
       });
     }
-    print('userBmid = $userBmid');
-    print("userName = $prefs.getString('user_name')!");
+    debugPrint('userBmid = $userBmid');
+    debugPrint("userName = $prefs.getString('user_name')!");
   }
 
   registerDevice(String empGuid, String deviceId, String orgGuid) async {
@@ -274,12 +275,15 @@ class _UserSearchScreenState extends State<UserSearchScreen>
         "orgGuid": orgGuid,
       };
 
-      await apiBaseHelper.postAPICall(deviceRegistrationApi, payload).then((responseData) {
+      await apiBaseHelper
+          .postAPICall(deviceRegistrationApi, payload)
+          .then((responseData) {
         String error = responseData['error'] ?? '';
         String status = responseData['status'] ?? '';
 
         if (status == 'TRUE') {
-          var message = responseData['message'] ?? 'Device registered successfully';
+          var message =
+              responseData['message'] ?? 'Device registered successfully';
 
           // Show success dialog
           showDialog(
@@ -288,7 +292,8 @@ class _UserSearchScreenState extends State<UserSearchScreen>
             builder: (_) => WillPopScope(
               onWillPop: () async => false,
               child: Dialog(
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
                 child: Padding(
                   padding: const EdgeInsets.all(20.0),
                   child: Column(
@@ -297,7 +302,8 @@ class _UserSearchScreenState extends State<UserSearchScreen>
                       Text(
                         message,
                         textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 10.sp, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                            fontSize: 10.sp, fontWeight: FontWeight.bold),
                       ),
                     ],
                   ),
@@ -329,7 +335,8 @@ class _UserSearchScreenState extends State<UserSearchScreen>
             //   (Route<dynamic> route) => false,
             // );
           }).catchError((e) {
-            _showNullValueError('registerDevice (getEmpFaceData error): ${e.toString()}');
+            _showNullValueError(
+                'registerDevice (getEmpFaceData error): ${e.toString()}');
           });
         } else if (error == 'DEVICE ALREADY REGISTERED.') {
           _showNullValueError('registerDevice: DEVICE ALREADY REGISTERED.');
@@ -354,178 +361,319 @@ class _UserSearchScreenState extends State<UserSearchScreen>
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: const GlassAppBar(title: 'MCD SMART', isLayoutScreen: true),
-      body: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(left: 16, right: 16, top: 16),
-                child: TextFormField(
-                  controller: bmidController,
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  maxLength: 8,
-                  validator: (val) {
-                    if (val == null || val.isEmpty) {
-                      return 'Please Enter BMID';
-                    }
-                    if (val.length != 8) {
-                      return 'Please enter valid 8 digit BMID.';
-                    }
-                    return null;
-                  },
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                    hintText: 'Enter BMID to search the user',
-                  ),
-                ),
-              ),
-              SizedBox(height: 20.h),
-              Center(
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  child: ElevatedButton(
-                    onPressed: bmidController.text.isEmpty
-                        ? null // Disable button if BMID is empty
-                        : () async {
-                            if (_formKey.currentState!.validate()) {
-                              _formKey.currentState!.save();
-                              searchEmpByBmid(); // Call the method after setting the BMID
-                              FocusScope.of(context).unfocus();
-                            }
-                          },
-                    style: ElevatedButton.styleFrom(
-                      padding: EdgeInsets.symmetric(vertical: 15.h),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      backgroundColor: bmidController.text.isEmpty
-                          ? Colors.grey // Disabled color
-                          : const Color(0xff111184), // Enabled color
-                    ),
-                    child: (isLoading)
-                        ?  Center(
-                            child: SizedBox(
-                              height: 20.h,
-                              width: 20.w,
-                              child: const CircularProgressIndicator(
-                                color: Colors.white,
-                              ),
-                            ),
-                          )
-                        : Text(
-                            'Search',
-                            style:
-                                TextStyle(fontSize: 14.sp, color: Colors.white),
-                          ),
-                  ),
-                ),
-              ),
-               SizedBox(
-                height: 20.h,
-              ),
-              (isUserFound)? // Show user details card if user is found
-                Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+      body: GestureDetector(
+        onTap: (){
+          FocusScope.of(context).unfocus();
+        },
+        child: Container(
+          height: double.infinity,
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                 Color(0xff2a5aab),  // 20% darker
+                 Color(0xff3e7dd5),  // Original color
+                 Color(0xff6a9ae3),  // 20% lighter
+              ],
+            ),
+          ),
+          child: Form(
+            key: _formKey,
+            child: SafeArea(
+              child: SingleChildScrollView(
+                child: Column(
                   children: [
-                     Text(
-                      'User Found',
-                      style: TextStyle(
-                          fontWeight: FontWeight.w500,
-                          color: Colors.green,
-                          fontSize: 15.sp),
-                    ),
-                     SizedBox(
-                      height: 10.h,
-                    ),
-                    Card(
-                      margin: EdgeInsets.symmetric(horizontal: 10.h),
-                      elevation: 8,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                      color: Colors.grey.shade50,
-                      child: Padding(
-                        padding: const EdgeInsets.all(20.0),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.max,
-                          children: [
-                            SizedBox(height: 20.h),
-                            UserInfoRow(
-                                label: "Employee ID",
-                                value: empData.first.empId ?? ""),
-                            const Divider(),
-                            UserInfoRow(
-                                label: "Name",
-                                value: empData.first.empName ?? ""),
-                            const Divider(),
-                            UserInfoRow(
-                                label: "Email",
-                                value: empData.first.email ?? ""),
-                            const Divider(),
-                            UserInfoRow(
-                                label: "Mobile",
-                                value: empData.first.mobile ?? ""),
-                            const Divider(),
-                            UserInfoRow(
-                                label: "Designation",
-                                value: empData.first.empDesignation ?? ""),
-                          ],
-                        ),
-                      ),
-                    ),
-                    SizedBox(
-                      height: 20.h,
-                    ),
+                    // Header Section
                     Container(
-                      width: double.infinity,
-                      margin: EdgeInsets.symmetric(horizontal: 10.w),
-                      child: ElevatedButton(
-                        onPressed: () {
-                          registerDevice(empGuid, deviceUniqueId, orgGuid);
-                        },
-                        style: ElevatedButton.styleFrom(
-                          padding: EdgeInsets.symmetric(vertical: 15.h),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          backgroundColor: const Color(0xff111184),
+                      padding: EdgeInsets.only(top: 30.h, bottom: 10.h),
+                      child: Text(
+                        'DEVICE REGISTRATION',
+                        style: TextStyle(
+                          fontSize: 28.sp,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          letterSpacing: 1.2,
                         ),
-                        child: (_isLoading)
-                            ?  Center(
-                                child: SizedBox(
-                                  height: 20.h,
-                                  width: 20.w,
-                                  child: const CircularProgressIndicator(
-                                    color: Colors.white,
+                      ),
+                    ),
+
+                    // Search Card
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 24.w),
+                      child: Card(
+                        color: Colors.white,
+                        elevation: 8,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(15),
+                        ),
+                        child: Padding(
+                          padding: EdgeInsets.all(20.w),
+                          child: Column(
+                            children: [
+                              Text(
+                                'Search Employee',
+                                style: TextStyle(
+                                  fontSize: 18.sp,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.blue.shade800,
+                                ),
+                              ),
+                              SizedBox(height: 10.h),
+                              TextFormField(
+                                controller: bmidController,
+                                keyboardType: TextInputType.number,
+                                inputFormatters: [
+                                  FilteringTextInputFormatter.digitsOnly
+                                ],
+                                maxLength: 8,
+                                validator: (val) {
+                                  if (val == null || val.isEmpty) {
+                                    return 'Please Enter BMID';
+                                  }
+                                  if (val.length != 8) {
+                                    return 'Please enter valid 8 digit BMID';
+                                  }
+                                  return null;
+                                },
+                                decoration: InputDecoration(
+                                  filled: true,
+                                  fillColor: Colors.grey.shade50,
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                    borderSide: BorderSide(
+                                      color: Colors.blue.shade400,
+                                      width: 1.0,
+                                    ),
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                    borderSide: BorderSide(
+                                      color: Colors.blue.shade400,
+                                      width: 1.0,
+                                    ),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                    borderSide: BorderSide(
+                                      color: Colors.blue.shade700,
+                                      width: 1.5,
+                                    ),
+                                  ),
+                                  hintText: 'Enter 8-digit BMID',
+                                  suffixIcon: isLoading
+                                      ? Padding(
+                                          padding: const EdgeInsets.all(4.0),
+                                          child: Material(
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(
+                                                  10), // Adjust for more/less rounding
+                                            ),
+                                            color: const Color(
+                                                0xff111184), // Light background color
+                                            elevation: 0,
+                                            child: Padding(
+                                              padding: const EdgeInsets.all(10.0),
+                                              child: SizedBox(
+                                                width: 8.w,
+                                                height: 8.h,
+                                                child:
+                                                    const CircularProgressIndicator(
+                                                  color: Colors.white,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        )
+                                      : Padding(
+                                          padding: const EdgeInsets.all(4.0),
+                                          child: Material(
+                                            // Rounded square shape
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(
+                                                  10), // Adjust for more/less rounding
+                                            ),
+                                            color: const Color(
+                                                0xff111184), // Light background color
+                                            elevation: 0, // No shadow by default
+                                            child: InkWell(
+                                              borderRadius: BorderRadius.circular(10),
+                                              onTap: () async {
+                                                if (_formKey.currentState!
+                                                    .validate()) {
+                                                  _formKey.currentState!.save();
+                                                  searchEmpByBmid();
+                                                  FocusScope.of(context).unfocus();
+                                                }
+                                              },
+                                              child: Padding(
+                                                padding: EdgeInsets.all(
+                                                    8.w), // Adjust padding for size
+                                                child: Icon(
+                                                  Icons.search,
+                                                  color: Colors.white,
+                                                  size: 24.w, // Adjust icon size
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                  contentPadding: EdgeInsets.symmetric(
+                                    vertical: 16.h,
+                                    horizontal: 16.w,
                                   ),
                                 ),
-                              )
-                            : Text('Register Device',
-                                style: TextStyle(
-                                    fontSize: 14.sp, color: Colors.white)),
+                                onFieldSubmitted: (value) async {
+                                  if (_formKey.currentState!.validate()) {
+                                    _formKey.currentState!.save();
+                                    searchEmpByBmid();
+                                    FocusScope.of(context).unfocus();
+                                  }
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     ),
+
+                    // Results Section
+                    if (isUserFound) ...[
+                      SizedBox(height: 15.h),
+                      Text(
+                        'Employee Found',
+                        style: TextStyle(
+                          fontSize: 20.sp,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xff00ff00),
+                        ),
+                      ),
+                      SizedBox(height: 10.h),
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 24.w),
+                        child: Card(
+                          elevation: 8,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(15),
+                          ),
+                          color: Colors.grey.shade50,
+                          child: Padding(
+                            padding: const EdgeInsets.all(15),
+                            child: Column(
+                              children: [
+                                UserInfoRow(
+                                  label: "Employee ID",
+                                  value: empData.first.empId ?? "",
+                                ),
+                                Divider(color: Colors.grey.shade300),
+                                UserInfoRow(
+                                  label: "Name",
+                                  value: empData.first.empName ?? "",
+                                ),
+                                Divider(color: Colors.grey.shade300),
+                                UserInfoRow(
+                                  label: "Email",
+                                  value: empData.first.email ?? "",
+                                ),
+                                Divider(color: Colors.grey.shade300),
+                                UserInfoRow(
+                                  label: "Mobile",
+                                  value: empData.first.mobile ?? "",
+                                ),
+                                Divider(color: Colors.grey.shade300),
+                                UserInfoRow(
+                                  label: "Designation",
+                                  value: empData.first.empDesignation ?? "",
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: 30.h),
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 24.w),
+                        child: SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: () {
+                              registerDevice(empGuid, deviceUniqueId, orgGuid);
+                            },
+                            style: ElevatedButton.styleFrom(
+                              padding: EdgeInsets.symmetric(vertical: 16.h),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              backgroundColor: const Color(0xff111184),
+                              elevation: 3,
+                            ),
+                            child: _isLoading
+                                ? SizedBox(
+                                    height: 20.h,
+                                    width: 20.w,
+                                    child: const CircularProgressIndicator(
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : Text(
+                                    'Register Device',
+                                    style: TextStyle(
+                                      fontSize: 16.sp,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: 20.h),
+                    ] else if (isButtonTapped && !isLoading) ...[
+                      SizedBox(height: 30.h),
+                      Icon(
+                        Icons.error_outline,
+                        color: const Color(0xffFF3131),
+                        size: 40.sp,
+                      ),
+                      SizedBox(height: 10.h),
+                      Text(
+                        'User Not Found',
+                        style: TextStyle(
+                          fontSize: 18.sp,
+                          fontWeight: FontWeight.w500,
+                          color: const Color(0xffFF3131),
+                        ),
+                      ),
+                    ] else if (isLoading) ...[
+                      SizedBox(
+                        height: 40.h,
+                      ),
+                      Center(
+                        child: Text(
+                          'Searching please wait.....',
+                          style:
+                              TextStyle(fontWeight: FontWeight.bold, fontSize: 18.sp,color: const Color(0xff31FFFF)),
+                        ),
+                      )
+                    ]
+                    else...[
+                      SizedBox(height: 40.h,),
+                      SizedBox(
+                          child: Image.asset(
+                            'assets/images/mcd-logo.png', // Replace with your image asset
+                            height: 250.h,
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+                      ],
+                    const SizedBox.shrink(),
                   ],
-                ):Center(child: (isButtonTapped)? Text(
-                'User Not Found',
-                style: TextStyle(
-                    fontWeight: FontWeight.w500,
-                    color: Colors.red,
-                    fontSize: 15.sp),
-              ):const Text(''),),
-
-
-
-            ],
+                ),
+              ),
+            ),
           ),
         ),
       ),
@@ -536,22 +684,115 @@ class _UserSearchScreenState extends State<UserSearchScreen>
 class UserInfoRow extends StatelessWidget {
   final String label;
   final String value;
+  final IconData? icon;
+  final int? maxLines;
+  final bool expandable;
 
-  const UserInfoRow({super.key, required this.label, required this.value});
+  const UserInfoRow({
+    super.key,
+    required this.label,
+    required this.value,
+    this.icon,
+    this.maxLines = 2,
+    this.expandable = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      padding: EdgeInsets.symmetric(vertical: 8.h),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Icon if provided
+          if (icon != null) ...[
+            Icon(icon, size: 18.sp, color: Colors.blue.shade700),
+            SizedBox(width: 8.w),
+          ],
+
+          // Label
           Text(
             '$label: ',
-            style: const TextStyle(fontWeight: FontWeight.bold),
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 14.sp,
+              color: Colors.grey.shade700,
+            ),
           ),
-          Text(value),
+
+          // Value with flexible width
+          Expanded(
+            child: expandable
+                ? ExpandableText(
+                    value,
+                    style: TextStyle(fontSize: 14.sp),
+                    maxLines: maxLines!,
+                    expandText: 'more',
+                    collapseText: 'less',
+                    linkColor: Colors.blue,
+                  )
+                : Text(
+                    value,
+                    style: TextStyle(fontSize: 14.sp),
+                    maxLines: maxLines,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+          ),
         ],
       ),
+    );
+  }
+}
+
+// For expandable text functionality (add this widget to your code)
+class ExpandableText extends StatefulWidget {
+  final String text;
+  final int maxLines;
+  final TextStyle? style;
+  final String expandText;
+  final String collapseText;
+  final Color linkColor;
+
+  const ExpandableText(
+    this.text, {
+    super.key,
+    this.maxLines = 2,
+    this.style,
+    this.expandText = 'Show more',
+    this.collapseText = 'Show less',
+    this.linkColor = Colors.blue,
+  });
+
+  @override
+  State<ExpandableText> createState() => _ExpandableTextState();
+}
+
+class _ExpandableTextState extends State<ExpandableText> {
+  bool _isExpanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          widget.text,
+          style: widget.style,
+          maxLines: _isExpanded ? null : widget.maxLines,
+          overflow: TextOverflow.ellipsis,
+        ),
+        if (widget.text.length > 50) // Only show toggle if text is long
+          GestureDetector(
+            onTap: () => setState(() => _isExpanded = !_isExpanded),
+            child: Text(
+              _isExpanded ? widget.collapseText : widget.expandText,
+              style: TextStyle(
+                color: widget.linkColor,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+      ],
     );
   }
 }

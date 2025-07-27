@@ -18,13 +18,13 @@ import 'Widgets/EmpHistoryWidget.dart';
 import 'Widgets/GlassAppbar.dart';
 
 class AttendanceHistoryScreen extends StatefulWidget {
-  final List<EmpHistoryData>? empHistoryData;
+  //final List<EmpHistoryData>? empHistoryData;
   final String currentMonth;
   final int currentYear;
   final int month;
   const AttendanceHistoryScreen(
       {super.key,
-      this.empHistoryData,
+     // this.empHistoryData,
       required this.currentMonth,
       required this.currentYear,
       required this.month});
@@ -82,7 +82,7 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen>
       month = widget.month;
       checkMonth = widget.month;
       year = widget.currentYear;
-      empHistoryData = widget.empHistoryData ?? [];
+     // empHistoryData = widget.empHistoryData ?? [];
       currMonth = DateFormat('MMM').format(DateTime(year, month));
     });
     _anController = AnimationController(
@@ -105,11 +105,6 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen>
   Future<void> checkNetwork() async {
     _isNetworkAvail = await isNetworkAvailable();
     await Future.delayed(const Duration(seconds: 2));
-    if (mounted) {
-      setState(() {
-        _isLoading = false;
-      });
-    }
   }
 
   void _showNullValueError(String errorDetails) {
@@ -141,7 +136,7 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen>
       "empGuid": empGuid
     };
 
-    print('parameter = $parameter');
+    debugPrint('parameter = $parameter');
 
     try {
       var getData = await apiBaseHelper.postAPICall(getEmpHistoryApi, parameter);
@@ -151,42 +146,42 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen>
 
       if (msg == 'TRUE') {
         var data = getData['attendanceXML']['attendanceList'];
-        print('data = $data');
+        debugPrint('data = $data');
 
         if (mounted) {
           setState(() {
             empHistoryData = data
                 .map<EmpHistoryData>((json) => EmpHistoryData.fromJson(json))
                 .toList();
-            _isLoading = false;
+            _isLoading = false;  // ✅ Move it here
           });
         }
       } else {
         if (mounted) {
           setState(() {
+            empHistoryData = [];
             _isLoading = false;
           });
         }
 
-        // Call error dialog for unsuccessful response
-        if(!error.contains("NO RECORD FOUND."))
-        {
+        if (!error.contains("NO RECORD FOUND.")) {
           _showNullValueError("getEmpHistory Api : $error $msg");
         }
       }
     } catch (e) {
-      print('Error: $e');
+      debugPrint('Error: $e');
 
       if (mounted) {
         setState(() {
           _isLoading = false;
+          empHistoryData = [];
         });
       }
 
-      // Call error dialog for exceptions
       _showNullValueError("getEmpHistory Api: $e");
     }
   }
+
 
 
   @override

@@ -23,6 +23,27 @@ class ApiBaseHelper {
     return responseJson;
   }
 
+  Future<dynamic> getAPICall(Uri url, {required String token}) async {
+    var responseJson;
+    try {
+      final response = await get(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      ).timeout(const Duration(seconds: timeOut));
+
+      responseJson = _response(response);
+    } on SocketException {
+      throw FetchDataException('No Internet connection');
+    } on TimeoutException {
+      throw FetchDataException('Something went wrong, try again later');
+    }
+    return responseJson;
+  }
+
+
   dynamic _response(Response response) {
     switch (response.statusCode) {
       case 200:

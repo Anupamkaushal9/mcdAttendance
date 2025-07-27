@@ -65,7 +65,7 @@ class _SplashScreenState extends State<SplashScreen>
         child: FadeTransition(
           opacity: _animation,
           child: Image.asset(
-            'assets/images/logo_mcd.png',
+            'assets/images/mcd-logo.png',
             height: height / 4,
             width: height / 4,
           ),

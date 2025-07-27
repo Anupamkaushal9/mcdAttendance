@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_exit_app/flutter_exit_app.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:lottie/lottie.dart';
+import 'package:mcd_attendance/Helpers/Constant.dart';
 import 'package:mcd_attendance/Helpers/String.dart';
 import 'package:mcd_attendance/Model/MeetingModel.dart';
 import 'package:http/http.dart' as http;
@@ -135,7 +136,7 @@ class _NewAvailableTaskScreenState extends State<NewAvailableTaskScreen> {
       });
     }
 
-    const String url = 'https://api.mcd.gov.in/app/request';
+    const String url = newBaseUrl;
     const String token =
         'eyJhbGciOiJIUzI1NiJ9.e30.g2PzdcLXSunm0_ZW-5d9ptZSpeXZi0qsh_sTuTTojRs';
 
@@ -178,7 +179,7 @@ class _NewAvailableTaskScreenState extends State<NewAvailableTaskScreen> {
       final errorMessage = "Error while fetching tasks.\n${e.toString()}";
       _showNullValueError("FetchTask Api: $errorMessage");
 
-      print("Error: $e");
+      debugPrint("Error: $e");
     } finally {
       if (mounted) {
         setState(() {
@@ -190,7 +191,7 @@ class _NewAvailableTaskScreenState extends State<NewAvailableTaskScreen> {
 
 
   Future<void> deleteTask(BuildContext context, String empBmid, String taskId) async {
-    const String url = 'https://api.mcd.gov.in/app/request';
+    const String url = newBaseUrl;
     const String token =
         'eyJhbGciOiJIUzI1NiJ9.e30.g2PzdcLXSunm0_ZW-5d9ptZSpeXZi0qsh_sTuTTojRs';
 

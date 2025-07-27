@@ -7,6 +7,7 @@ import 'package:flutter_exit_app/flutter_exit_app.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
 import 'package:lottie/lottie.dart';
+import 'package:mcd_attendance/Helpers/Constant.dart';
 import 'package:mcd_attendance/Helpers/NotificationService.dart';
 import 'package:mcd_attendance/Helpers/String.dart';
 import 'package:mcd_attendance/Model/MeetingModel.dart';
@@ -159,7 +160,7 @@ class _NewAvailableMeetingScreenState extends State<NewAvailableMeetingScreen> {
       });
     }
 
-    const String url = 'https://api.mcd.gov.in/app/request';
+    const String url = newBaseUrl;
     const String token =
         'eyJhbGciOiJIUzI1NiJ9.e30.rIxFKYxozQ7lXw7UNW_3CBS7YK-pfGkjkUmjIH0o8Ag';
 
@@ -244,7 +245,7 @@ class _NewAvailableMeetingScreenState extends State<NewAvailableMeetingScreen> {
     }
 
   Future<void> deleteMeeting(BuildContext context, String empBmid, String meetingId) async {
-    const String url = 'https://api.mcd.gov.in/app/request';
+    const String url = newBaseUrl;
     const String token =
         'eyJhbGciOiJIUzI1NiJ9.e30.I6VSp1lpc6c62V8SeoJtTwUgds6gN07iMLWfokomGlc';
 
@@ -325,7 +326,7 @@ class _NewAvailableMeetingScreenState extends State<NewAvailableMeetingScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      extendBodyBehindAppBar: true,
+      extendBodyBehindAppBar: false,
       appBar: const GlassAppBar(title: 'MEETINGS', isLayoutScreen: false),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
@@ -345,7 +346,7 @@ class _NewAvailableMeetingScreenState extends State<NewAvailableMeetingScreen> {
         child: const Icon(Icons.add,color: Colors.white,), // Icon to display in the FAB
       ),
       body: Padding(
-        padding:  EdgeInsets.only(left: 8.0,right: 8.0,bottom: 8.0,top: kToolbarHeight+ MediaQuery.of(context).padding.top),
+        padding:  const EdgeInsets.only(left: 8.0,right: 8.0,bottom: 8.0,top: 0),
         child: Column(
           children: [
             ValueListenableBuilder<Map<DateTime, List<MeetingDataModel>>>(
@@ -414,7 +415,7 @@ class _NewAvailableMeetingScreenState extends State<NewAvailableMeetingScreen> {
                           child: Container(
                             padding: const EdgeInsets.all(4),
                             decoration: const BoxDecoration(
-                              color: Colors.pinkAccent,
+                              color: Color(0xff50C878),
                               shape: BoxShape.circle,
                             ),
                             child: Text(

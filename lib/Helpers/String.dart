@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:flutter/material.dart';
 import 'package:mcd_attendance/Model/Employee.dart';
 
 import 'Constant.dart';
@@ -40,3 +41,11 @@ String appVersionFromDevice= '';
 String temp = '803F57D2-D3C0-4EE0-B5F4-EA48053C3093';
 bool isFreshUser = false;
 bool isFreshUserForSupervisor = false;
+bool hasSuperVisorAccess = false;
+bool faceDataAvailableFromApi = true;
+bool isContainDataOne = false;
+bool isContainDataTwo = false;
+Color bodyColor = Colors.white;
+Color appBarColor = const Color(0xff3e7dd5);
+Color bottomNavColor = Colors.white30;
+String event = '';

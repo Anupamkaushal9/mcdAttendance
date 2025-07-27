@@ -2,14 +2,19 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mcd_attendance/Helpers/String.dart';
+import 'package:mcd_attendance/Screens/DeRegisterHistoryScreen.dart';
 import 'package:mcd_attendance/Screens/FaqScreen.dart';
 import 'package:mcd_attendance/Screens/HelpDeskScreen.dart';
 import 'package:mcd_attendance/Screens/HolidayListScreen.dart';
 import 'package:mcd_attendance/Screens/LayoutScreen.dart';
+import 'package:mcd_attendance/Screens/ManageLeavesScreen.dart';
 import 'package:mcd_attendance/Screens/NewAvailableMeetingScreen.dart';
 import 'package:mcd_attendance/Screens/NewAvailableTaskScreen.dart';
 import 'package:mcd_attendance/Screens/NotificationScreen.dart';
+import 'package:mcd_attendance/Screens/TransferHistoryScreen.dart';
 import 'dart:math';
+
+import 'package:mcd_attendance/Screens/ZonalReportScreen.dart';
 
 class MenuScreen extends StatefulWidget {
   const MenuScreen({super.key});
@@ -22,34 +27,34 @@ class _MenuScreenState extends State<MenuScreen> with TickerProviderStateMixin {
   // List of menu items
   final List<MenuItem> servicesItems = [
     MenuItem(
-      icon: Image.asset('assets/images/add_meeting.png', height: 50.h, width: 50.w),
+      icon: Image.asset('assets/images/meeting.png', height: 50.h, width: 50.w),
       title: 'Meetings',
     ),
     MenuItem(
-      icon: Image.asset('assets/images/to-do-list.png', height: 50.h, width: 50.w),
+      icon: Image.asset('assets/images/my_task.png', height: 50.h, width: 50.w),
       title: 'My Tasks',
-    ),
-    MenuItem(
-      icon: Image.asset('assets/images/outdoor.png', height: 50.h, width: 50.w),
-      title: 'Outdoor Duty',
     ),
     MenuItem(
       icon: Image.asset('assets/images/holiday.png', height: 50.h, width: 50.w),
       title: 'Holidays List',
     ),
+    // MenuItem(
+    //   icon: Image.asset('assets/images/notification.png', height: 50.h, width: 50.w),
+    //   title: 'Notifications',
+    // ),
     MenuItem(
-      icon: Image.asset('assets/images/notification.png', height: 50.h, width: 50.w),
-      title: 'Notifications',
+      icon: Image.asset('assets/images/manage_leaves.png', height: 50.h, width: 50.w),
+      title: 'Manage Leaves',
     ),
   ];
 
   final List<MenuItem> supportItems = [
     MenuItem(
-      icon: Image.asset('assets/images/help-desk.png', height: 50.h, width: 50.w),
+      icon: Image.asset('assets/images/helpSupport.png', height: 50.h, width: 50.w),
       title: 'Help Desk',
     ),
     MenuItem(
-      icon: Image.asset('assets/images/faq.png', height: 50.h, width: 50.w),
+      icon: Image.asset('assets/images/faqs.png', height: 50.h, width: 50.w),
       title: 'FAQs',
     ),
   ];
@@ -116,6 +121,9 @@ class _MenuScreenState extends State<MenuScreen> with TickerProviderStateMixin {
                       } else if (menuItem.title == 'My Tasks') {
                         Navigator.push(context,
                             MaterialPageRoute(builder: (_) => NewAvailableTaskScreen()));
+                      }else if (menuItem.title == 'Manage Leaves') {
+                        Navigator.push(context,
+                            MaterialPageRoute(builder: (_) => const ManageLeavesScreen()));
                       }
                       else if (menuItem.title == 'Outdoor Duty') {
                       }
@@ -140,11 +148,14 @@ class _MenuScreenState extends State<MenuScreen> with TickerProviderStateMixin {
                         children: [
                           menuItem.icon,
                           SizedBox(height: 8.h),
-                          Text(
-                            menuItem.title,
-                            style: TextStyle(
-                              fontSize: 14.sp,
-                              fontWeight: FontWeight.bold,
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              menuItem.title,
+                              style: TextStyle(
+                                fontSize: 14.sp,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                         ],
@@ -182,12 +193,10 @@ class _MenuScreenState extends State<MenuScreen> with TickerProviderStateMixin {
                     onTap: () {
                       if (menuItem.title == 'Help Desk') {
                         Navigator.push(context,
-                            MaterialPageRoute(builder: (_) => HelpDeskScreen()));
+                            MaterialPageRoute(builder: (_) => const HelpDeskScreen()));
                       } else if (menuItem.title == 'FAQs') {
                         Navigator.push(context,
-                            MaterialPageRoute(builder: (_) => FAQScreen()));
-                      } else if (menuItem.title == 'Outdoor Duty') {
-                        // Add logic for Outdoor Duty if needed
+                            MaterialPageRoute(builder: (_) => const FAQScreen()));
                       }
                     },
                     child: Card(
@@ -202,11 +211,14 @@ class _MenuScreenState extends State<MenuScreen> with TickerProviderStateMixin {
                         children: [
                           menuItem.icon,
                           SizedBox(height: 8.h),
-                          Text(
-                            menuItem.title,
-                            style: TextStyle(
-                              fontSize: 14.sp,
-                              fontWeight: FontWeight.bold,
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              menuItem.title,
+                              style: TextStyle(
+                                fontSize: 14.sp,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                         ],
@@ -218,63 +230,60 @@ class _MenuScreenState extends State<MenuScreen> with TickerProviderStateMixin {
               SizedBox(height: 20.h),
 
               // Section 3: MIS Report
-              Text(
-                "MIS Report",
-                style: TextStyle(
-                  fontSize: 22.sp,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              Divider(thickness: 1,color: Colors.grey.shade300,),
-              GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 3,
-                  crossAxisSpacing: 16.w,
-                  mainAxisSpacing: 16.h,
-                  childAspectRatio: 1.2,
-                ),
-                itemCount: misReportItems.length,
-                itemBuilder: (context, index) {
-                  final menuItem = misReportItems[index];
-                  Color randomColor = _generateRandomColor();
-
-                  return GestureDetector(
-                    onTap: () {
-                      if (menuItem.title == 'Holidays List') {
-                        Navigator.push(context,
-                            MaterialPageRoute(builder: (_) => const HolidayListScreen()));
-                      } else if (menuItem.title == 'Notifications') {
-                        Navigator.push(context,
-                            MaterialPageRoute(builder: (_) => const NotificationScreen()));
-                      }
-                    },
-                    child: Card(
-                      elevation: 4,
-                      shadowColor: Colors.teal,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12.r),
-                      ),
-                      color: Colors.white,
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          menuItem.icon,
-                          SizedBox(height: 8.h),
-                          Text(
-                            menuItem.title,
-                            style: TextStyle(
-                              fontSize: 14.sp,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
+              // Text(
+              //   "MIS Report",
+              //   style: TextStyle(
+              //     fontSize: 22.sp,
+              //     fontWeight: FontWeight.bold,
+              //   ),
+              // ),
+              // Divider(thickness: 1,color: Colors.grey.shade300,),
+              // GridView.builder(
+              //   shrinkWrap: true,
+              //   physics: const NeverScrollableScrollPhysics(),
+              //   gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              //     crossAxisCount: 3,
+              //     crossAxisSpacing: 16.w,
+              //     mainAxisSpacing: 16.h,
+              //     childAspectRatio: 1.2,
+              //   ),
+              //   itemCount: misReportItems.length,
+              //   itemBuilder: (context, index) {
+              //     final menuItem = misReportItems[index];
+              //     Color randomColor = _generateRandomColor();
+              //
+              //     return GestureDetector(
+              //       onTap: () {
+              //         if (menuItem.title == 'Zonal Report') {
+              //           Navigator.push(context,
+              //               MaterialPageRoute(builder: (_) => const ZonalReportScreen()));
+              //         }
+              //       },
+              //       child: Card(
+              //         elevation: 4,
+              //         shadowColor: Colors.teal,
+              //         shape: RoundedRectangleBorder(
+              //           borderRadius: BorderRadius.circular(12.r),
+              //         ),
+              //         color: Colors.white,
+              //         child: Column(
+              //           mainAxisAlignment: MainAxisAlignment.center,
+              //           children: [
+              //             menuItem.icon,
+              //             SizedBox(height: 8.h),
+              //             Text(
+              //               menuItem.title,
+              //               style: TextStyle(
+              //                 fontSize: 14.sp,
+              //                 fontWeight: FontWeight.bold,
+              //               ),
+              //             ),
+              //           ],
+              //         ),
+              //       ),
+              //     );
+              //   },
+              // ),
             ],
           ),
         ),

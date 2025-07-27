@@ -77,8 +77,8 @@ class _InAttendanceScreenNormalState extends State<InAttendanceScreenNormal>
     checkForInternet();
     getLastAttendance();
     _checkPermissionsAndInitializeCamera();
-    print("date time");
-    print(DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now()));
+    debugPrint("date time");
+    debugPrint(DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now()));
     _getCurrentLocation().then((_) {
       getDistanceData();
     });
@@ -132,7 +132,7 @@ class _InAttendanceScreenNormalState extends State<InAttendanceScreenNormal>
     if (await Permission.camera.request().isGranted) {
       await _initializeCamera();
     } else {
-      print('Camera permission denied');
+      debugPrint('Camera permission denied');
     }
   }
 
@@ -151,7 +151,7 @@ class _InAttendanceScreenNormalState extends State<InAttendanceScreenNormal>
   }
 
   getLastAttendance() async {
-    print('last attendance api is running');
+    debugPrint('last attendance api is running');
     await Future.delayed(const Duration(seconds: 2));
     var parameter = {
       "empGuid": empGuid,
@@ -168,8 +168,8 @@ class _InAttendanceScreenNormalState extends State<InAttendanceScreenNormal>
 
           if (mounted) {
             setState(() {
-              print('In Time: $inTime');
-              print('Out Time: $outTime');
+              debugPrint('In Time: $inTime');
+              debugPrint('Out Time: $outTime');
 
               DateTime now = DateTime.now();
 
@@ -235,7 +235,7 @@ class _InAttendanceScreenNormalState extends State<InAttendanceScreenNormal>
           }
 
           if (error.isNotEmpty) {
-            print('Error: $error');
+            debugPrint('Error: $error');
           }
         }
       },
@@ -280,7 +280,7 @@ class _InAttendanceScreenNormalState extends State<InAttendanceScreenNormal>
       String status = response['status'].toString();
       String message = response['message'] ?? 'No message provided';
       String errorMessage = response['error'] ?? 'No message provided';
-      print("message from api = $message");
+      debugPrint("message from api = $message");
       if (status == 'TRUE') {
         BuildContext dialogContext;
 
@@ -558,7 +558,7 @@ class _InAttendanceScreenNormalState extends State<InAttendanceScreenNormal>
         String status = responseData['status'].toString();
         String distance = responseData['distance'].toString();
 
-        print("API Response: $responseData");
+        debugPrint("API Response: $responseData");
 
         if (status == 'TRUE') {
           // Process the response if status is 'TRUE'
@@ -593,7 +593,7 @@ class _InAttendanceScreenNormalState extends State<InAttendanceScreenNormal>
       }
     } catch (e) {
       // Catch any other errors (network issues, parsing issues, etc.)
-      print("Error: $e");
+      debugPrint("Error: $e");
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Error: ${e.toString()}")),
       );
@@ -706,9 +706,9 @@ class _InAttendanceScreenNormalState extends State<InAttendanceScreenNormal>
     // Handle camera permission status
     if (statusCamera != PermissionStatus.granted) {
       if (statusCamera == PermissionStatus.denied) {
-        print('Camera permission denied');
+        debugPrint('Camera permission denied');
       } else if (statusCamera == PermissionStatus.permanentlyDenied) {
-        print('Camera permission permanently denied');
+        debugPrint('Camera permission permanently denied');
         // Show dialog that cannot be dismissed until user opens settings
         showOpenSettingsDialog(context, "Camera");
       }
@@ -717,9 +717,9 @@ class _InAttendanceScreenNormalState extends State<InAttendanceScreenNormal>
     // Handle other permissions like storage
     if (statusStorage != PermissionStatus.granted) {
       if (statusStorage == PermissionStatus.denied) {
-        print('Storage permission denied');
+        debugPrint('Storage permission denied');
       } else if (statusStorage == PermissionStatus.permanentlyDenied) {
-        print('Storage permission permanently denied');
+        debugPrint('Storage permission permanently denied');
         // Show dialog that cannot be dismissed until user opens settings
         showOpenSettingsDialog(context, "Storage");
       }
@@ -1044,7 +1044,7 @@ class _InAttendanceScreenNormalState extends State<InAttendanceScreenNormal>
             ),
           ),
         ],
-        title: const Text("MCD SMART"),
+        title: const Text("MCD PRO"),
         centerTitle: true,
       ),
       resizeToAvoidBottomInset: true,
@@ -1161,7 +1161,7 @@ class _InAttendanceScreenNormalState extends State<InAttendanceScreenNormal>
                               // Capture the image
                               final image =
                                   await cameraController!.takePicture();
-                              print('Captured: ${image.path}');
+                              debugPrint('Captured: ${image.path}');
                               if (image.path.isNotEmpty) {
                                 // Convert the captured image to bytes
                                 Uint8List imageBytes = await image.readAsBytes();
@@ -1185,7 +1185,7 @@ class _InAttendanceScreenNormalState extends State<InAttendanceScreenNormal>
                               }
                             }
                           } catch (e) {
-                            print('Error capturing photo: $e');
+                            debugPrint('Error capturing photo: $e');
                           }
                     },
                     style: ElevatedButton.styleFrom(
